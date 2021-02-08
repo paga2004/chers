@@ -1,7 +1,4 @@
-use position::Position;
-
-mod piece;
-mod position;
+use chers::Position;
 
 fn main() {
     let pos = Position::new();
