@@ -7,6 +7,7 @@
 // Turn on some extra Clippy (Rust code linter) warnings. Run `cargo clippy`.
 #![warn(clippy::all)]
 
+mod fen;
 mod piece;
 mod position;
 
