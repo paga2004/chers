@@ -66,17 +66,34 @@ impl Position {
 
 impl fmt::Display for Position {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        for i in 0..8 {
-            for j in 0..8 {
-                match self.pieces[calculate_index(j, 7 - i)] {
-                    Some(piece) => write!(f, "{}", piece)?,
-                    None => write!(f, "_")?,
-                }
-                if j != 7 {
+        // print flags
+        writeln!(f, "{} to move", self.color_to_move)?;
+        writeln!(f)?;
+
+        // print board
+        writeln!(f, "  ┌───┬───┬───┬───┬───┬───┬───┬───┐")?;
+        for rank in (0..8).rev() {
+            write!(f, "{} │", rank + 1)?;
+            for file in 0..8 {
+                write!(f, " ")?;
+                if let Some(piece) = self.pieces[calculate_index(file, rank)] {
+                    write!(f, "{}", piece)?;
+                } else {
                     write!(f, " ")?;
                 }
+                write!(f, " │")?;
             }
-            writeln!(f)?;
+            if rank > 0 {
+                writeln!(f, "\n  ├───┼───┼───┼───┼───┼───┼───┼───┤")?;
+            } else {
+                writeln!(f, "\n  └───┴───┴───┴───┴───┴───┴───┴───┘")?;
+            }
+        }
+
+        // print letters
+        write!(f, " ")?;
+        for i in 0..8 {
+            write!(f, "   {}", (97u8 + i) as char)?;
         }
         Ok(())
     }
@@ -111,14 +128,27 @@ mod tests {
 
     #[test]
     fn test_display() {
-        let expected = "r n b q k b n r\n\
-                        p p p p p p p p\n\
-                        _ _ _ _ _ _ _ _\n\
-                        _ _ _ _ _ _ _ _\n\
-                        _ _ _ _ _ _ _ _\n\
-                        _ _ _ _ _ _ _ _\n\
-                        P P P P P P P P\n\
-                        R N B Q K B N R\n";
+        let expected = "\
+White to move\n\n  \
+
+  ┌───┬───┬───┬───┬───┬───┬───┬───┐\n\
+8 │ r │ n │ b │ q │ k │ b │ n │ r │\n  \
+  ├───┼───┼───┼───┼───┼───┼───┼───┤\n\
+7 │ p │ p │ p │ p │ p │ p │ p │ p │\n  \
+  ├───┼───┼───┼───┼───┼───┼───┼───┤\n\
+6 │   │   │   │   │   │   │   │   │\n  \
+  ├───┼───┼───┼───┼───┼───┼───┼───┤\n\
+5 │   │   │   │   │   │   │   │   │\n  \
+  ├───┼───┼───┼───┼───┼───┼───┼───┤\n\
+4 │   │   │   │   │   │   │   │   │\n  \
+  ├───┼───┼───┼───┼───┼───┼───┼───┤\n\
+3 │   │   │   │   │   │   │   │   │\n  \
+  ├───┼───┼───┼───┼───┼───┼───┼───┤\n\
+2 │ P │ P │ P │ P │ P │ P │ P │ P │\n  \
+  ├───┼───┼───┼───┼───┼───┼───┼───┤\n\
+1 │ R │ N │ B │ Q │ K │ B │ N │ R │\n  \
+  └───┴───┴───┴───┴───┴───┴───┴───┘\n    \
+    a   b   c   d   e   f   g   h";
         assert_eq!(format!("{}", Position::new()), expected);
     }
 }

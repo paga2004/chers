@@ -16,6 +16,15 @@ pub(crate) enum Color {
     Black,
 }
 
+impl fmt::Display for Color {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Color::White => write!(f, "White")?,
+            Color::Black => write!(f, "Black")?,
+        }
+        Ok(())
+    }
+}
 #[derive(Clone, Copy, PartialEq)]
 pub(crate) struct Piece {
     pub(crate) piece_type: PieceType,
