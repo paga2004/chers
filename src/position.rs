@@ -30,8 +30,10 @@ impl Field {
     ///
     /// # Panics
     ///
-    /// Panics if `file` or `rank` are < 0 or > 7
+    /// Panics if `file` or `rank` are > 7
     pub fn new(file: usize, rank: usize) -> Self {
+        assert!(file <= 7);
+        assert!(rank <= 7);
         Self::from_index(calculate_index(file, rank))
     }
     fn from_index(index: usize) -> Self {
@@ -116,6 +118,18 @@ mod tests {
         assert_eq!(Field::new(0, 7), A8);
         assert_eq!(Field::new(7, 0), H1);
         assert_eq!(Field::new(7, 7), H8);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_field_new_out_of_bounds_field() {
+        let _ = Field::new(8, 0);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_field_new_out_of_bounds_rank() {
+        let _ = Field::new(0, 8);
     }
 
     #[test]
