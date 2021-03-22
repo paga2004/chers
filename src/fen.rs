@@ -5,7 +5,7 @@ pub(crate) const STARTING_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKB
 
 impl Position {
     /// Creates a Position from a [FEN](https://en.wikipedia.org/wiki/Forsyth%E2%80%93Edwards_Notation)
-    /// string or returns `None` if the fen is invalid.
+    /// string or returns an error if the fen is invalid.
     ///
     /// At the moment it ignores the active color, castling rights, etc.
     ///
