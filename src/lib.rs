@@ -8,7 +8,9 @@
 #![warn(clippy::all)]
 
 mod fen;
+mod r#move;
 mod piece;
 mod position;
 
 pub use position::Position;
+pub use r#move::Move;

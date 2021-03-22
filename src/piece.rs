@@ -1,7 +1,7 @@
 use std::fmt;
 
-#[derive(Copy, Clone, PartialEq)]
-pub(crate) enum PieceType {
+#[derive(Copy, Clone, PartialEq, Debug)]
+pub enum PieceType {
     Pawn,
     Knight,
     Bishop,
