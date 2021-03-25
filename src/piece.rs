@@ -1,4 +1,5 @@
 use std::fmt;
+use std::ops;
 
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub enum PieceType {
@@ -10,10 +11,21 @@ pub enum PieceType {
     King,
 }
 
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq, Debug)]
 pub(crate) enum Color {
     White,
     Black,
+}
+
+impl ops::Not for Color {
+    type Output = Self;
+
+    fn not(self) -> Self::Output {
+        match self {
+            Color::White => Color::Black,
+            Color::Black => Color::White,
+        }
+    }
 }
 
 impl fmt::Display for Color {
@@ -29,6 +41,12 @@ impl fmt::Display for Color {
 pub(crate) struct Piece {
     pub(crate) piece_type: PieceType,
     pub(crate) color: Color,
+}
+
+impl Piece {
+    pub(crate) fn new(piece_type: PieceType, color: Color) -> Self {
+        Self { piece_type, color }
+    }
 }
 
 impl fmt::Display for Piece {

@@ -3,9 +3,9 @@ use crate::position::Field;
 
 #[derive(Debug, PartialEq)]
 pub struct Move {
-    from: Field,
-    to: Field,
-    promotion_piece: Option<PieceType>,
+    pub(crate) from: Field,
+    pub(crate) to: Field,
+    pub(crate) promotion_piece: Option<PieceType>,
 }
 
 impl Move {
@@ -38,28 +38,24 @@ impl Move {
 
         let mut c = chars.next()?;
         if c < 'a' || c > 'h' {
-            dbg!(1);
             return None;
         }
         let from_file = c as usize - 'a' as usize;
 
         c = chars.next()?;
         if c < '1' || c > '8' {
-            dbg!(2);
             return None;
         }
         let from_rank = c.to_digit(10)? as usize - 1;
 
         c = chars.next()?;
         if c < 'a' || c > 'h' {
-            dbg!(3);
             return None;
         }
         let to_file = c as usize - 'a' as usize;
 
         c = chars.next()?;
         if c < '1' || c > '8' {
-            dbg!(4);
             return None;
         }
         let to_rank = c.to_digit(10)? as usize - 1;
