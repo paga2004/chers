@@ -1,15 +1,28 @@
 use crate::piece::PieceType;
-use crate::position::Field;
+use crate::position::Square;
 
-#[derive(Debug, PartialEq)]
+/// Represents a chess move.
+///
+/// The move can either be a normal move, a capture, castling, or a promotion.
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub struct Move {
-    pub(crate) from: Field,
-    pub(crate) to: Field,
+    pub(crate) from: Square,
+    pub(crate) to: Square,
     pub(crate) promotion_piece: Option<PieceType>,
 }
 
 impl Move {
-    pub fn new(from: Field, to: Field, promotion_piece: Option<PieceType>) -> Self {
+    /// Creates a new `Move`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use chers::{Move, Square, PieceType};
+    ///
+    /// let e2e4 = Move::new(Square::E2, Square::E4, None);
+    /// let promotion = Move::new(Square::F7, Square::F8, Some(PieceType::Queen));
+    /// ```
+    pub fn new(from: Square, to: Square, promotion_piece: Option<PieceType>) -> Self {
         Self {
             from,
             to,
@@ -17,9 +30,9 @@ impl Move {
         }
     }
 
-    /// Generates a new Move from [Smith Noatation](https://web.archive.org/web/20160117212352/https://www.chessclub.com/chessviewer/smith.html).
+    /// Creates a new `Move` from [Smith Notation].
     ///
-    /// Returns an error if the string is not a valid move. However, it doesn't check if the move
+    /// Returns an `None` if the string is not a valid move. However, it doesn't check if the move
     /// is legal.
     ///
     /// # Examples
@@ -33,6 +46,8 @@ impl Move {
     /// assert!(m1.is_some());
     /// assert!(m2.is_none());
     /// ```
+    ///
+    /// [Smith Notation]: https://web.archive.org/web/20160117212352/https://www.chessclub.com/chessviewer/smith.html
     pub fn from_smith_notation(m: &str) -> Option<Self> {
         let mut chars = m.chars();
 
@@ -88,8 +103,8 @@ impl Move {
         }
 
         Some(Self {
-            from: Field::new(from_file, from_rank),
-            to: Field::new(to_file, to_rank),
+            from: Square::new(from_file, from_rank),
+            to: Square::new(to_file, to_rank),
             promotion_piece,
         })
     }
@@ -118,8 +133,8 @@ mod tests {
     #[test]
     fn from_smith_notation_e2e4() {
         let expected = Move {
-            from: Field::E2,
-            to: Field::E4,
+            from: Square::E2,
+            to: Square::E4,
             promotion_piece: None,
         };
         assert_eq!(Move::from_smith_notation("e2e4"), Some(expected));
@@ -128,8 +143,8 @@ mod tests {
     #[test]
     fn from_smith_notation_e4g5p() {
         let expected = Move {
-            from: Field::E4,
-            to: Field::G5,
+            from: Square::E4,
+            to: Square::G5,
             promotion_piece: None,
         };
         assert_eq!(Move::from_smith_notation("e4g5p"), Some(expected));
@@ -139,8 +154,8 @@ mod tests {
     #[allow(non_snake_case)]
     fn from_smith_notation_f7f8Q() {
         let expected = Move {
-            from: Field::F7,
-            to: Field::F8,
+            from: Square::F7,
+            to: Square::F8,
             promotion_piece: Some(PieceType::Queen),
         };
         assert_eq!(Move::from_smith_notation("f7f8Q"), Some(expected));
@@ -150,8 +165,8 @@ mod tests {
     #[allow(non_snake_case)]
     fn from_smith_notation_f7f8nQ() {
         let expected = Move {
-            from: Field::F7,
-            to: Field::F8,
+            from: Square::F7,
+            to: Square::F8,
             promotion_piece: Some(PieceType::Queen),
         };
         assert_eq!(Move::from_smith_notation("f7f8nQ"), Some(expected));
@@ -161,8 +176,8 @@ mod tests {
     #[allow(non_snake_case)]
     fn from_smith_notation_f7f8R() {
         let expected = Move {
-            from: Field::F7,
-            to: Field::F8,
+            from: Square::F7,
+            to: Square::F8,
             promotion_piece: Some(PieceType::Rook),
         };
         assert_eq!(Move::from_smith_notation("f7f8R"), Some(expected));
@@ -172,8 +187,8 @@ mod tests {
     #[allow(non_snake_case)]
     fn from_smith_notation_f7f8B() {
         let expected = Move {
-            from: Field::F7,
-            to: Field::F8,
+            from: Square::F7,
+            to: Square::F8,
             promotion_piece: Some(PieceType::Bishop),
         };
         assert_eq!(Move::from_smith_notation("f7f8B"), Some(expected));
@@ -183,8 +198,8 @@ mod tests {
     #[allow(non_snake_case)]
     fn from_smith_notation_f7f8N() {
         let expected = Move {
-            from: Field::F7,
-            to: Field::F8,
+            from: Square::F7,
+            to: Square::F8,
             promotion_piece: Some(PieceType::Knight),
         };
         assert_eq!(Move::from_smith_notation("f7f8N"), Some(expected));

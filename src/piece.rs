@@ -1,7 +1,9 @@
 use std::fmt;
 use std::ops;
 
+/// Represents a piece without considering its color.
 #[derive(Copy, Clone, PartialEq, Debug)]
+#[allow(missing_docs)]
 pub enum PieceType {
     Pawn,
     Knight,
@@ -37,6 +39,7 @@ impl fmt::Display for Color {
         Ok(())
     }
 }
+
 #[derive(Clone, Copy, PartialEq)]
 pub(crate) struct Piece {
     pub(crate) piece_type: PieceType,

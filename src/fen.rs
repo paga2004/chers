@@ -4,8 +4,7 @@ use crate::position::{calculate_index, Position};
 pub(crate) const STARTING_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
 impl Position {
-    /// Creates a Position from a [FEN](https://en.wikipedia.org/wiki/Forsyth%E2%80%93Edwards_Notation)
-    /// string or returns an error if the fen is invalid.
+    /// Creates a Position from a [FEN] string or returns an error if the fen is invalid.
     ///
     /// At the moment it ignores the active color, castling rights, etc.
     ///
@@ -17,6 +16,8 @@ impl Position {
     /// let position = Position::from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1").unwrap();
     /// assert_eq!(position, Position::new());
     /// ```
+    ///
+    /// [FEN]: https://en.wikipedia.org/wiki/Forsyth%E2%80%93Edwards_Notation
     pub fn from_fen(fen: &str) -> Result<Self, String> {
         let mut sectors = fen.split(' ');
 
@@ -71,6 +72,7 @@ impl Position {
         })
     }
 
+    /// Returns the fen representation of the current position.
     pub fn to_fen(&self) -> String {
         todo!();
     }

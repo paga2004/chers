@@ -1,7 +1,8 @@
 //! This module contains the board representation.
 //!
-//! Little-Endian Rank-File Mapping is used everywhere.
-//! See [here](https://www.chessprogramming.org/Square_Mapping_Considerations#Little-Endian%20Rank-File%20Mapping)
+//! [Little-Endian Rank-File Mapping][LERF] is used everywhere.
+//!
+//! [LERF]: https://www.chessprogramming.org/Square_Mapping_Considerations#Little-Endian%20Rank-File%20Mapping
 
 use crate::fen;
 use crate::piece::{Color, Piece, PieceType};
@@ -12,10 +13,11 @@ pub(crate) fn calculate_index(file: usize, rank: usize) -> usize {
     file + 8 * rank
 }
 
-/// Represents each field of the board.
+/// Represents a square on the board.
 #[rustfmt::skip]
+#[allow(missing_docs)]
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub enum Field {
+pub enum Square {
     A1, B1, C1, D1, E1, F1, G1, H1,
     A2, B2, C2, D2, E2, F2, G2, H2,
     A3, B3, C3, D3, E3, F3, G3, H3,
@@ -26,8 +28,8 @@ pub enum Field {
     A8, B8, C8, D8, E8, F8, G8, H8,
 }
 
-impl Field {
-    /// Creates a `Field` from file and rank.
+impl Square {
+    /// Creates a `Square` from file and rank.
     ///
     /// # Panics
     ///
@@ -37,8 +39,9 @@ impl Field {
         assert!(rank <= 7);
         Self::from_index(calculate_index(file, rank))
     }
+
     fn from_index(index: usize) -> Self {
-        use Field::*;
+        use Square::*;
         #[rustfmt::skip]
         return [
              A1, B1, C1, D1, E1, F1, G1, H1,
@@ -52,15 +55,38 @@ impl Field {
         ][index];
     }
 
+    /// Returns the file of the field as an integer
+    ///
+    /// # Examples
+    /// ```
+    /// # use chers::Square;
+    /// assert_eq!(Square::A1.file(), 0);
+    /// assert_eq!(Square::E8.file(), 4);
+    /// assert_eq!(Square::H4.file(), 7);
+    /// ```
     pub fn file(self) -> usize {
         self as usize % 8
     }
 
+    /// Returns the rank of the field as an integer
+    ///
+    /// # Examples
+    /// ```
+    /// # use chers::Square;
+    /// assert_eq!(Square::A1.rank(), 0);
+    /// assert_eq!(Square::E8.rank(), 7);
+    /// assert_eq!(Square::H4.rank(), 3);
+    /// ```
     pub fn rank(self) -> usize {
         self as usize / 8
     }
 }
 
+/// Represents a chess position.
+///
+/// This is the heart of the crate. Most of its functionality can be accessed achieved with this
+/// struct.
+#[allow(missing_copy_implementations)] // copying a position is expensive and should be avoided
 #[derive(PartialEq)]
 pub struct Position {
     /// All the pieces on the board
@@ -69,52 +95,52 @@ pub struct Position {
 }
 
 impl Position {
-    /// Creates a new Position
+    /// Returns the starting position.
     pub fn new() -> Self {
         Self::from_fen(fen::STARTING_FEN).unwrap()
     }
 
-    /// Make a move on the current position.
+    /// Makes a move on the current position.
     ///
     /// This function does not check whether the move is legal.
     pub fn make_move(&mut self, m: &Move) {
         if let Some(p) = self.pieces[m.from as usize] {
             self.color_to_move = !self.color_to_move;
             // white castling
-            if m.from == Field::E1 && p.piece_type == PieceType::King && p.color == Color::White {
-                // long
-                if m.to == Field::C1 {
-                    self.pieces[Field::D1 as usize] = self.pieces[Field::A1 as usize];
-                    self.pieces[Field::C1 as usize] = Some(p);
-                    self.pieces[Field::E1 as usize] = None;
-                    self.pieces[Field::A1 as usize] = None;
+            if m.from == Square::E1 && p.piece_type == PieceType::King && p.color == Color::White {
+                // queenside
+                if m.to == Square::C1 {
+                    self.pieces[Square::D1 as usize] = self.pieces[Square::A1 as usize];
+                    self.pieces[Square::C1 as usize] = Some(p);
+                    self.pieces[Square::E1 as usize] = None;
+                    self.pieces[Square::A1 as usize] = None;
                     return;
                 }
-                // short
-                if m.to == Field::G1 {
-                    self.pieces[Field::F1 as usize] = self.pieces[Field::A1 as usize];
-                    self.pieces[Field::G1 as usize] = Some(p);
-                    self.pieces[Field::E1 as usize] = None;
-                    self.pieces[Field::H1 as usize] = None;
+                // kingside
+                if m.to == Square::G1 {
+                    self.pieces[Square::F1 as usize] = self.pieces[Square::A1 as usize];
+                    self.pieces[Square::G1 as usize] = Some(p);
+                    self.pieces[Square::E1 as usize] = None;
+                    self.pieces[Square::H1 as usize] = None;
                     return;
                 }
             }
             // black castling
-            if m.from == Field::E8 && p.piece_type == PieceType::King && p.color == Color::Black {
-                // long
-                if m.to == Field::C8 {
-                    self.pieces[Field::D8 as usize] = self.pieces[Field::A8 as usize];
-                    self.pieces[Field::C8 as usize] = Some(p);
-                    self.pieces[Field::E8 as usize] = None;
-                    self.pieces[Field::A8 as usize] = None;
+            if m.from == Square::E8 && p.piece_type == PieceType::King && p.color == Color::Black {
+                // queenside
+                if m.to == Square::C8 {
+                    self.pieces[Square::D8 as usize] = self.pieces[Square::A8 as usize];
+                    self.pieces[Square::C8 as usize] = Some(p);
+                    self.pieces[Square::E8 as usize] = None;
+                    self.pieces[Square::A8 as usize] = None;
                     return;
                 }
-                // short
-                if m.to == Field::G8 {
-                    self.pieces[Field::F8 as usize] = self.pieces[Field::A8 as usize];
-                    self.pieces[Field::G8 as usize] = Some(p);
-                    self.pieces[Field::E8 as usize] = None;
-                    self.pieces[Field::H8 as usize] = None;
+                // kingside
+                if m.to == Square::G8 {
+                    self.pieces[Square::F8 as usize] = self.pieces[Square::A8 as usize];
+                    self.pieces[Square::G8 as usize] = Some(p);
+                    self.pieces[Square::E8 as usize] = None;
+                    self.pieces[Square::H8 as usize] = None;
                     return;
                 }
             }
@@ -125,9 +151,9 @@ impl Position {
                 && self.pieces[m.to as usize] == None
             {
                 let capture_field = if p.color == Color::White {
-                    Field::new(m.to.file(), m.to.rank() - 1)
+                    Square::new(m.to.file(), m.to.rank() - 1)
                 } else {
-                    Field::new(m.to.file(), m.to.rank() + 1)
+                    Square::new(m.to.file(), m.to.rank() + 1)
                 };
                 self.pieces[capture_field as usize] = None;
             }
@@ -193,36 +219,36 @@ mod tests {
 
     #[test]
     fn test_field_new() {
-        use Field::*;
-        assert_eq!(Field::new(0, 0), A1);
-        assert_eq!(Field::new(0, 7), A8);
-        assert_eq!(Field::new(7, 0), H1);
-        assert_eq!(Field::new(7, 7), H8);
+        use Square::*;
+        assert_eq!(Square::new(0, 0), A1);
+        assert_eq!(Square::new(0, 7), A8);
+        assert_eq!(Square::new(7, 0), H1);
+        assert_eq!(Square::new(7, 7), H8);
     }
 
     #[test]
     #[should_panic]
     fn test_field_new_out_of_bounds_field() {
-        let _ = Field::new(8, 0);
+        let _ = Square::new(8, 0);
     }
 
     #[test]
     #[should_panic]
     fn test_field_new_out_of_bounds_rank() {
-        let _ = Field::new(0, 8);
+        let _ = Square::new(0, 8);
     }
 
     #[test]
     fn test_field_from_index() {
         for i in 0..64 {
-            let f = Field::from_index(i);
+            let f = Square::from_index(i);
             assert_eq!(i, f as usize);
         }
     }
 
     #[test]
     fn test_field_file() {
-        use Field::*;
+        use Square::*;
         assert_eq!(A1.file(), 0);
         assert_eq!(A2.file(), 0);
         assert_eq!(A8.file(), 0);
@@ -236,7 +262,7 @@ mod tests {
 
     #[test]
     fn test_field_rank() {
-        use Field::*;
+        use Square::*;
         assert_eq!(A1.rank(), 0);
         assert_eq!(B1.rank(), 0);
         assert_eq!(H1.rank(), 0);
@@ -248,7 +274,7 @@ mod tests {
         assert_eq!(H8.rank(), 7);
     }
 
-    /// Generates a function to test `Position::make_move`.
+    /// Creates a function to test `Position::make_move`.
     ///
     /// Curly braces are necessary for rustfmt to work, which is nice because it can automatically
     /// wrap long lines.
@@ -266,6 +292,7 @@ mod tests {
                 }
             )*
         };
+        () => {};
     }
 
     test_position_make_move!({
@@ -298,22 +325,22 @@ mod tests {
         );
 
         // castling
-        test_positon_make_move_short_castling_white(
+        test_positon_make_move_kingside_castling_white(
             "r1bqkb1r/pppp1ppp/2n2n2/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4",
             "e1g1",
             "r1bqkb1r/pppp1ppp/2n2n2/1B2p3/4P3/5N2/PPPP1PPP/RNBQ1RK1 b kq - 5 4",
         );
-        test_positon_make_move_long_castling_white(
+        test_positon_make_move_queenside_castling_white(
             "r2qkb1r/ppp1pppp/2n5/3p1b2/3PnB2/2NQP3/PPP2PPP/R3KBNR w KQkq - 5 6",
             "e1c1",
             "r2qkb1r/ppp1pppp/2n5/3p1b2/3PnB2/2NQP3/PPP2PPP/2KR1BNR b kq - 6 6",
         );
-        test_positon_make_move_short_castling_black(
+        test_positon_make_move_kingside_castling_black(
             "rnbqk2r/pppp1ppp/5n2/4N3/1b2P3/2N5/PPPP1PPP/R1BQKB1R b KQkq - 0 4",
             "e8g8",
             "rnbq1rk1/pppp1ppp/5n2/4N3/1b2P3/2N5/PPPP1PPP/R1BQKB1R w KQ - 1 5",
         );
-        test_positon_make_move_long_castling_black(
+        test_positon_make_move_queenside_castling_black(
             "r3kbnr/pppqpppp/2n1b3/3pN3/2PP4/2N5/PP2PPPP/R1BQKB1R b KQkq - 6 5",
             "e8c8",
             "2kr1bnr/pppqpppp/2n1b3/3pN3/2PP4/2N5/PP2PPPP/R1BQKB1R w KQ - 7 6",
