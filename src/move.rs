@@ -130,78 +130,51 @@ mod tests {
         assert_eq!(Move::from_smith_notation("f7e8rQ "), None);
     }
 
-    #[test]
-    fn from_smith_notation_e2e4() {
-        let expected = Move {
-            from: Square::E2,
-            to: Square::E4,
-            promotion_piece: None,
+    /// Creates a function to test `Move::from_smith_notation`.
+    ///
+    /// Curly braces are necessary for rustfmt to work, which is nice because it can automatically
+    /// wrap long lines.
+    macro_rules! test_move_from_smith_notation {
+        ({ $($name:ident($move:expr, $from:expr, $to:expr, $promotion_piece:expr $(,)?);)+ }) => {
+            $(
+                #[test]
+                #[allow(non_snake_case)]
+                fn $name() {
+                    let expected = Move::new($from, $to, $promotion_piece);
+                    assert_eq!(Move::from_smith_notation($move), Some(expected));
+                }
+            )*
         };
-        assert_eq!(Move::from_smith_notation("e2e4"), Some(expected));
+        () => {};
     }
 
-    #[test]
-    fn from_smith_notation_e4g5p() {
-        let expected = Move {
-            from: Square::E4,
-            to: Square::G5,
-            promotion_piece: None,
-        };
-        assert_eq!(Move::from_smith_notation("e4g5p"), Some(expected));
-    }
-
-    #[test]
-    #[allow(non_snake_case)]
-    fn from_smith_notation_f7f8Q() {
-        let expected = Move {
-            from: Square::F7,
-            to: Square::F8,
-            promotion_piece: Some(PieceType::Queen),
-        };
-        assert_eq!(Move::from_smith_notation("f7f8Q"), Some(expected));
-    }
-
-    #[test]
-    #[allow(non_snake_case)]
-    fn from_smith_notation_f7f8nQ() {
-        let expected = Move {
-            from: Square::F7,
-            to: Square::F8,
-            promotion_piece: Some(PieceType::Queen),
-        };
-        assert_eq!(Move::from_smith_notation("f7f8nQ"), Some(expected));
-    }
-
-    #[test]
-    #[allow(non_snake_case)]
-    fn from_smith_notation_f7f8R() {
-        let expected = Move {
-            from: Square::F7,
-            to: Square::F8,
-            promotion_piece: Some(PieceType::Rook),
-        };
-        assert_eq!(Move::from_smith_notation("f7f8R"), Some(expected));
-    }
-
-    #[test]
-    #[allow(non_snake_case)]
-    fn from_smith_notation_f7f8B() {
-        let expected = Move {
-            from: Square::F7,
-            to: Square::F8,
-            promotion_piece: Some(PieceType::Bishop),
-        };
-        assert_eq!(Move::from_smith_notation("f7f8B"), Some(expected));
-    }
-
-    #[test]
-    #[allow(non_snake_case)]
-    fn from_smith_notation_f7f8N() {
-        let expected = Move {
-            from: Square::F7,
-            to: Square::F8,
-            promotion_piece: Some(PieceType::Knight),
-        };
-        assert_eq!(Move::from_smith_notation("f7f8N"), Some(expected));
-    }
+    test_move_from_smith_notation!({
+        test_move_from_smith_notation_e2e4("e2e4", Square::E2, Square::E4, None);
+        test_move_from_smith_notation_e4g5p("e4g5p", Square::E4, Square::G5, None);
+        test_move_from_smith_notation_f7f8Q(
+            "f7f8Q",
+            Square::F7,
+            Square::F8,
+            Some(PieceType::Queen),
+        );
+        test_move_from_smith_notation_f7f8nQ(
+            "f7f8nQ",
+            Square::F7,
+            Square::F8,
+            Some(PieceType::Queen),
+        );
+        test_move_from_smith_notation_f7f8R("f7f8R", Square::F7, Square::F8, Some(PieceType::Rook));
+        test_move_from_smith_notation_f7f8B(
+            "f7f8B",
+            Square::F7,
+            Square::F8,
+            Some(PieceType::Bishop),
+        );
+        test_move_from_smith_notation_f7f8N(
+            "f7f8N",
+            Square::F7,
+            Square::F8,
+            Some(PieceType::Knight),
+        );
+    });
 }
