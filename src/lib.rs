@@ -11,17 +11,23 @@
 // Warn on missing docs.
 #![warn(missing_docs)]
 
+mod color;
 mod fen;
+mod file;
 mod r#move;
 mod piece;
 mod position;
+mod rank;
 mod square;
 
-pub use piece::Color;
+pub use file::File;
+pub use rank::Rank;
+pub use square::Square;
+
+pub use color::Color;
 pub use piece::Piece;
 pub use piece::PieceType;
-pub use position::Position;
+
 pub use r#move::Move;
-pub use square::File;
-pub use square::Rank;
-pub use square::Square;
+
+pub use position::Position;

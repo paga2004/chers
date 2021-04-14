@@ -1,5 +1,5 @@
+use crate::Color;
 use std::fmt;
-use std::ops;
 
 /// Represents a piece without considering its color.
 #[derive(Copy, Clone, PartialEq, Debug)]
@@ -11,35 +11,6 @@ pub enum PieceType {
     Rook,
     Queen,
     King,
-}
-
-/// Represents the color of a player or a piece.
-#[derive(Copy, Clone, PartialEq, Debug)]
-#[allow(missing_docs)]
-pub enum Color {
-    White,
-    Black,
-}
-
-impl ops::Not for Color {
-    type Output = Self;
-
-    fn not(self) -> Self::Output {
-        match self {
-            Color::White => Color::Black,
-            Color::Black => Color::White,
-        }
-    }
-}
-
-impl fmt::Display for Color {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Color::White => write!(f, "White")?,
-            Color::Black => write!(f, "Black")?,
-        }
-        Ok(())
-    }
 }
 
 /// Represents a piece.
