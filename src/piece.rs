@@ -13,6 +13,33 @@ pub enum PieceType {
     King,
 }
 
+impl PieceType {
+    /// Creates a `PieceType` from its english letter or returns `None`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use chers::PieceType;
+    ///
+    /// assert_eq!(PieceType::from_char('K'), Some(PieceType::King));
+    /// assert_eq!(PieceType::from_char('N'), Some(PieceType::Knight));
+    /// assert_eq!(PieceType::from_char('n'), Some(PieceType::Knight));
+    ///
+    /// assert_eq!(PieceType::from_char('X'), None);
+    /// ```
+    pub fn from_char(c: char) -> Option<Self> {
+        match c {
+            'p' | 'P' => Some(Self::Pawn),
+            'n' | 'N' => Some(Self::Knight),
+            'b' | 'B' => Some(Self::Bishop),
+            'r' | 'R' => Some(Self::Rook),
+            'q' | 'Q' => Some(Self::Queen),
+            'k' | 'K' => Some(Self::King),
+            _ => None,
+        }
+    }
+}
+
 /// Represents a piece.
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub struct Piece {
@@ -21,8 +48,32 @@ pub struct Piece {
 }
 
 impl Piece {
-    pub(crate) fn new(piece_type: PieceType, color: Color) -> Self {
+    /// Creates a new `Piece` from a `PieceType` and a `Color`.
+    pub fn new(piece_type: PieceType, color: Color) -> Self {
         Self { piece_type, color }
+    }
+
+    /// Creates a `Piece` from its english letter or returns `None`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use chers::{Piece, PieceType, Color};
+    ///
+    /// assert_eq!(Piece::from_char('K'), Some(Piece::new(PieceType::King, Color::White)));
+    /// assert_eq!(Piece::from_char('N'), Some(Piece::new(PieceType::Knight, Color::White)));
+    /// assert_eq!(Piece::from_char('n'), Some(Piece::new(PieceType::Knight, Color::Black)));
+    ///
+    /// assert_eq!(Piece::from_char('x'), None);
+    /// ```
+    pub fn from_char(c: char) -> Option<Self> {
+        let piece_type = PieceType::from_char(c)?;
+        let color = if c.is_ascii_uppercase() {
+            Color::White
+        } else {
+            Color::Black
+        };
+        Some(Piece::new(piece_type, color))
     }
 }
 

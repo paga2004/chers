@@ -20,6 +20,8 @@ mod position;
 mod rank;
 mod square;
 
+pub mod error;
+
 pub use file::File;
 pub use rank::Rank;
 pub use square::Square;

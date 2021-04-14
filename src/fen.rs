@@ -1,7 +1,7 @@
+use crate::error::FenParsingError;
 use crate::position::calculate_index;
 use crate::Color;
 use crate::Piece;
-use crate::PieceType;
 use crate::Position;
 
 pub(crate) const STARTING_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
@@ -21,53 +21,13 @@ impl Position {
     /// ```
     ///
     /// [FEN]: https://en.wikipedia.org/wiki/Forsyth%E2%80%93Edwards_Notation
-    pub fn from_fen(fen: &str) -> Result<Self, String> {
-        let mut sectors = fen.split(' ');
+    pub fn from_fen(fen: &str) -> Result<Self, FenParsingError> {
+        let mut fields = fen.split(' ');
 
-        let mut pieces = [None; 64];
-        let mut piece_chars = sectors.next().ok_or("FEN too short")?.chars();
-        let mut rank = 7;
-        let mut file = 0;
-        while rank != 0 || file != 8 {
-            let c = piece_chars.next().ok_or("FEN too short")?;
+        let mut next_field = || fields.next().ok_or(FenParsingError::TooShort);
 
-            if c == '/' {
-                if file != 8 {
-                    return Err("Wrong number of files".to_string());
-                }
-                file = 0;
-                rank -= 1;
-                continue;
-            }
-            if let Some(number) = c.to_digit(10) {
-                file += number as usize;
-                continue;
-            }
-            let piece_type = match c.to_ascii_lowercase() {
-                'p' => PieceType::Pawn,
-                'n' => PieceType::Knight,
-                'b' => PieceType::Bishop,
-                'r' => PieceType::Rook,
-                'q' => PieceType::Queen,
-                'k' => PieceType::King,
-                other => {
-                    return Err(format!("Invalid piece: {}", other));
-                }
-            };
-            let color = if c.is_uppercase() {
-                Color::White
-            } else {
-                Color::Black
-            };
-            let index = calculate_index(file, rank);
-            pieces[index] = Some(Piece { piece_type, color });
-            file += 1;
-        }
-        let color_to_move = match sectors.next().ok_or("FEN too short")? {
-            "w" => Color::White,
-            "b" => Color::Black,
-            other => return Err(format!("Invalid color: {}", other)),
-        };
+        let pieces = parse_pieces(next_field()?)?;
+        let color_to_move = parse_color(next_field()?)?;
 
         Ok(Self {
             pieces,
@@ -81,9 +41,47 @@ impl Position {
     }
 }
 
+fn parse_pieces(s: &str) -> Result<[Option<Piece>; 64], FenParsingError> {
+    let mut chars = s.chars();
+    let mut pieces = [None; 64];
+
+    let mut rank = 7;
+    let mut file = 0;
+    while !(rank == 0 && file == 8) {
+        match chars.next().ok_or(FenParsingError::TooShort)? {
+            '/' => {
+                if file != 8 {
+                    return Err(FenParsingError::WrongNumberOfFiles);
+                }
+                file = 0;
+                rank -= 1;
+                continue;
+            }
+            c @ '0'..='9' => {
+                file += c.to_digit(10).unwrap() as usize;
+                continue;
+            }
+            c => {
+                let piece = Piece::from_char(c).ok_or(FenParsingError::InvalidPiece(c))?;
+                let index = calculate_index(file, rank);
+                pieces[index] = Some(piece);
+                file += 1;
+            }
+        }
+    }
+
+    Ok(pieces)
+}
+
+fn parse_color(s: &str) -> Result<Color, FenParsingError> {
+    let c = s.chars().next().ok_or(FenParsingError::TooShort)?;
+    Color::from_char(c).ok_or(FenParsingError::InvalidColor(c))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::PieceType;
 
     /// Returns Option<Piece> from a char. This makes it easier to create Pieces in the following tests.
     fn p(symbol: char) -> Option<Piece> {
@@ -107,28 +105,43 @@ mod tests {
     #[test]
     fn test_from_fen_empty_input() {
         let fen = "";
-        assert_eq!(Position::from_fen(fen), Err("FEN too short".to_string()));
+        assert_eq!(Position::from_fen(fen), Err(FenParsingError::TooShort));
     }
 
     #[test]
-    fn test_from_fen_wrong_number_of_files() {
+    fn test_from_fen_not_enough_files() {
         let fen = "rnbqkbnr/pppppppp/7/7/7/7/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
         assert_eq!(
             Position::from_fen(fen),
-            Err("Wrong number of files".to_string())
+            Err(FenParsingError::WrongNumberOfFiles)
         );
     }
 
     #[test]
-    fn test_from_fen_empty_unexpected_character() {
+    fn test_from_fen_too_many_files() {
+        let fen = "rnbqkbnr/pppppppp/9/9/9/9/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+        assert_eq!(
+            Position::from_fen(fen),
+            Err(FenParsingError::WrongNumberOfFiles)
+        );
+    }
+
+    #[test]
+    fn test_from_fen_invalid_piece() {
         let fen = "rnbqk?nr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-        assert_eq!(Position::from_fen(fen), Err("Invalid piece: ?".to_string()));
+        assert_eq!(
+            Position::from_fen(fen),
+            Err(FenParsingError::InvalidPiece('?'))
+        );
     }
 
     #[test]
     fn test_from_fen_invalid_color() {
         let fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR x KQkq - 0 1";
-        assert_eq!(Position::from_fen(fen), Err("Invalid color: x".to_string()));
+        assert_eq!(
+            Position::from_fen(fen),
+            Err(FenParsingError::InvalidColor('x'))
+        );
     }
 
     #[test]
