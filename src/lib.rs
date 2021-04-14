@@ -20,4 +20,6 @@ mod square;
 pub use piece::PieceType;
 pub use position::Position;
 pub use r#move::Move;
+pub use square::File;
+pub use square::Rank;
 pub use square::Square;

@@ -1,4 +1,6 @@
 use crate::piece::PieceType;
+use crate::square::File;
+use crate::square::Rank;
 use crate::square::Square;
 
 /// Represents a chess move.
@@ -55,25 +57,25 @@ impl Move {
         if c < 'a' || c > 'h' {
             return None;
         }
-        let from_file = c as usize - 'a' as usize;
+        let from_file = File::from_char(c);
 
         c = chars.next()?;
         if c < '1' || c > '8' {
             return None;
         }
-        let from_rank = c.to_digit(10)? as usize - 1;
+        let from_rank = Rank::from_char(c);
 
         c = chars.next()?;
         if c < 'a' || c > 'h' {
             return None;
         }
-        let to_file = c as usize - 'a' as usize;
+        let to_file = File::from_char(c);
 
         c = chars.next()?;
         if c < '1' || c > '8' {
             return None;
         }
-        let to_rank = c.to_digit(10)? as usize - 1;
+        let to_rank = Rank::from_char(c);
 
         let mut promotion_piece = None;
         if let Some(c) = chars.next() {

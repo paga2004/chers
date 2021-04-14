@@ -7,7 +7,7 @@
 use crate::fen;
 use crate::piece::{Color, Piece, PieceType};
 use crate::r#move::Move;
-use crate::square::Square;
+use crate::square::{Rank, Square};
 use std::fmt;
 
 pub(crate) fn calculate_index(file: usize, rank: usize) -> usize {
@@ -83,9 +83,9 @@ impl Position {
                 && self.pieces[m.to as usize] == None
             {
                 let capture_field = if p.color == Color::White {
-                    Square::new(m.to.file(), m.to.rank() - 1)
+                    Square::new(m.to.file(), Rank::new(m.to.rank() as u8 - 1))
                 } else {
-                    Square::new(m.to.file(), m.to.rank() + 1)
+                    Square::new(m.to.file(), Rank::new(m.to.rank() as u8 + 1))
                 };
                 self.pieces[capture_field as usize] = None;
             }
