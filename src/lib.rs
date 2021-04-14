@@ -17,6 +17,8 @@ mod piece;
 mod position;
 mod square;
 
+pub use piece::Color;
+pub use piece::Piece;
 pub use piece::PieceType;
 pub use position::Position;
 pub use r#move::Move;

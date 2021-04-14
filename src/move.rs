@@ -1,7 +1,7 @@
-use crate::piece::PieceType;
-use crate::square::File;
-use crate::square::Rank;
-use crate::square::Square;
+use crate::File;
+use crate::PieceType;
+use crate::Rank;
+use crate::Square;
 
 /// Represents a chess move.
 ///

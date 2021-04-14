@@ -13,8 +13,10 @@ pub enum PieceType {
     King,
 }
 
+/// Represents the color of a player or a piece.
 #[derive(Copy, Clone, PartialEq, Debug)]
-pub(crate) enum Color {
+#[allow(missing_docs)]
+pub enum Color {
     White,
     Black,
 }
@@ -40,8 +42,9 @@ impl fmt::Display for Color {
     }
 }
 
-#[derive(Clone, Copy, PartialEq)]
-pub(crate) struct Piece {
+/// Represents a piece.
+#[derive(Clone, Copy, PartialEq, Debug)]
+pub struct Piece {
     pub(crate) piece_type: PieceType,
     pub(crate) color: Color,
 }

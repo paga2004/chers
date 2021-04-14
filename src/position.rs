@@ -5,9 +5,12 @@
 //! [LERF]: https://www.chessprogramming.org/Square_Mapping_Considerations#Little-Endian%20Rank-File%20Mapping
 
 use crate::fen;
-use crate::piece::{Color, Piece, PieceType};
-use crate::r#move::Move;
-use crate::square::{Rank, Square};
+use crate::Color;
+use crate::Move;
+use crate::Piece;
+use crate::PieceType;
+use crate::Rank;
+use crate::Square;
 use std::fmt;
 
 pub(crate) fn calculate_index(file: usize, rank: usize) -> usize {

@@ -1,5 +1,8 @@
-use crate::piece::{Color, Piece, PieceType};
-use crate::position::{calculate_index, Position};
+use crate::position::calculate_index;
+use crate::Color;
+use crate::Piece;
+use crate::PieceType;
+use crate::Position;
 
 pub(crate) const STARTING_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
