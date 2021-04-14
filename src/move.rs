@@ -1,5 +1,5 @@
 use crate::piece::PieceType;
-use crate::position::Square;
+use crate::square::Square;
 
 /// Represents a chess move.
 ///

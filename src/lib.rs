@@ -15,7 +15,9 @@ mod fen;
 mod r#move;
 mod piece;
 mod position;
+mod square;
 
 pub use piece::PieceType;
-pub use position::{Position, Square};
+pub use position::Position;
 pub use r#move::Move;
+pub use square::Square;
