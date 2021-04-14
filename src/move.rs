@@ -1,3 +1,4 @@
+use crate::error::MoveParsingError;
 use crate::File;
 use crate::PieceType;
 use crate::Rank;
@@ -40,71 +41,52 @@ impl Move {
     /// # Examples
     ///
     /// ```
+    /// # use chers::error::MoveParsingError;
     /// use chers::Move;
     ///
     /// let m1 = Move::from_smith_notation("e2e4");
     /// let m2 = Move::from_smith_notation("e2e9");
     ///
-    /// assert!(m1.is_some());
-    /// assert!(m2.is_none());
+    /// assert!(m1.is_ok());
+    /// assert_eq!(m2, Err(MoveParsingError::InvalidRank('9')));
     /// ```
     ///
     /// [Smith Notation]: https://web.archive.org/web/20160117212352/https://www.chessclub.com/chessviewer/smith.html
-    pub fn from_smith_notation(m: &str) -> Option<Self> {
+    pub fn from_smith_notation(m: &str) -> Result<Self, MoveParsingError> {
         let mut chars = m.chars();
+        let mut c;
+        let mut next_char = || chars.next().ok_or(MoveParsingError::TooShort);
 
-        let mut c = chars.next()?;
-        if c < 'a' || c > 'h' {
-            return None;
-        }
-        let from_file = File::from_char(c);
+        c = next_char()?;
+        let from_file = File::from_char(c).ok_or(MoveParsingError::InvalidFile(c))?;
 
-        c = chars.next()?;
-        if c < '1' || c > '8' {
-            return None;
-        }
-        let from_rank = Rank::from_char(c);
+        c = next_char()?;
+        let from_rank = Rank::from_char(c).ok_or(MoveParsingError::InvalidRank(c))?;
 
-        c = chars.next()?;
-        if c < 'a' || c > 'h' {
-            return None;
-        }
-        let to_file = File::from_char(c);
+        c = next_char()?;
+        let to_file = File::from_char(c).ok_or(MoveParsingError::InvalidFile(c))?;
 
-        c = chars.next()?;
-        if c < '1' || c > '8' {
-            return None;
-        }
-        let to_rank = Rank::from_char(c);
+        c = next_char()?;
+        let to_rank = Rank::from_char(c).ok_or(MoveParsingError::InvalidRank(c))?;
 
-        let mut promotion_piece = None;
-        if let Some(c) = chars.next() {
-            let promotion_information;
-            if "pnbrqkEcC".contains(c) {
-                // capture indicator
-                promotion_information = chars.next();
-            } else {
-                promotion_information = Some(c);
+        let promotion_info = match chars.next() {
+            Some(c) if c.is_ascii_lowercase() => {
+                let _ = PieceType::from_char(c)
+                    .ok_or(MoveParsingError::InvalidCaptureIndicatior(c))
+                    .map(|_| ())?;
+
+                chars.next()
             }
-            if let Some(c) = promotion_information {
-                promotion_piece = match c {
-                    'N' => Some(PieceType::Knight),
-                    'B' => Some(PieceType::Bishop),
-                    'R' => Some(PieceType::Rook),
-                    'Q' => Some(PieceType::Queen),
-                    _ => {
-                        return None;
-                    }
-                };
-            }
-        }
+            other => other,
+        };
 
-        // too long
-        if chars.next().is_some() {
-            return None;
-        }
+        let promotion_piece = if let Some(c) = promotion_info {
+            Some(PieceType::from_char(c).ok_or(MoveParsingError::InvalidPromotionPiece(c))?)
+        } else {
+            None
+        };
 
-        Some(Self {
+        Ok(Self {
             from: Square::new(from_file, from_rank),
             to: Square::new(to_file, to_rank),
             promotion_piece,
@@ -117,19 +99,63 @@ mod tests {
     use super::*;
 
     #[test]
-    fn from_smith_notation_invalid() {
-        assert_eq!(Move::from_smith_notation(""), None);
-        assert_eq!(Move::from_smith_notation("e2"), None);
-        assert_eq!(Move::from_smith_notation("e2e9"), None);
-        assert_eq!(Move::from_smith_notation("e0e2"), None);
-        assert_eq!(Move::from_smith_notation("A1e2"), None);
-        assert_eq!(Move::from_smith_notation("e1A2"), None);
-        assert_eq!(Move::from_smith_notation("f7f8P"), None);
-        assert_eq!(Move::from_smith_notation("f7f8px"), None);
-        assert_eq!(Move::from_smith_notation("f7f8x"), None);
-        assert_eq!(Move::from_smith_notation("f7f8xQ"), None);
-        assert_eq!(Move::from_smith_notation("f7e8Qx"), None);
-        assert_eq!(Move::from_smith_notation("f7e8rQ "), None);
+    fn from_smith_notation_too_short() {
+        assert_eq!(
+            Move::from_smith_notation(""),
+            Err(MoveParsingError::TooShort)
+        );
+        assert_eq!(
+            Move::from_smith_notation("e2"),
+            Err(MoveParsingError::TooShort)
+        );
+    }
+
+    #[test]
+    fn from_smith_notation_invalid_file() {
+        assert_eq!(
+            Move::from_smith_notation("x1e2"),
+            Err(MoveParsingError::InvalidFile('x'))
+        );
+        assert_eq!(
+            Move::from_smith_notation("e1x2"),
+            Err(MoveParsingError::InvalidFile('x'))
+        );
+    }
+
+    #[test]
+    fn from_smith_notation_invalid_rank() {
+        assert_eq!(
+            Move::from_smith_notation("e2e9"),
+            Err(MoveParsingError::InvalidRank('9'))
+        );
+        assert_eq!(
+            Move::from_smith_notation("e0e2"),
+            Err(MoveParsingError::InvalidRank('0'))
+        );
+    }
+
+    #[test]
+    fn from_smith_notation_invalid_capture_indicator() {
+        assert_eq!(
+            Move::from_smith_notation("f7f8x"),
+            Err(MoveParsingError::InvalidCaptureIndicatior('x'))
+        );
+        assert_eq!(
+            Move::from_smith_notation("f7f8xQ"),
+            Err(MoveParsingError::InvalidCaptureIndicatior('x'))
+        );
+    }
+
+    #[test]
+    fn from_smith_notation_invalid_promotion_piece() {
+        assert_eq!(
+            Move::from_smith_notation("f7f8pX"),
+            Err(MoveParsingError::InvalidPromotionPiece('X'))
+        );
+        assert_eq!(
+            Move::from_smith_notation("f7f8X"),
+            Err(MoveParsingError::InvalidPromotionPiece('X'))
+        );
     }
 
     /// Creates a function to test `Move::from_smith_notation`.
@@ -143,7 +169,7 @@ mod tests {
                 #[allow(non_snake_case)]
                 fn $name() {
                     let expected = Move::new($from, $to, $promotion_piece);
-                    assert_eq!(Move::from_smith_notation($move), Some(expected));
+                    assert_eq!(Move::from_smith_notation($move), Ok(expected));
                 }
             )*
         };

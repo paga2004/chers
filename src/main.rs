@@ -12,10 +12,10 @@ fn main() -> io::Result<()> {
             let mut line = String::new();
             io::stdout().flush()?;
             io::stdin().read_line(&mut line)?; // including '\n'
-            if let Some(m) = Move::from_smith_notation(line.trim()) {
-                break m;
+            match Move::from_smith_notation(line.trim()) {
+                Ok(m) => break m,
+                Err(e) => println!("Invalid move ({}). Try again", e),
             }
-            println!("Invalid move. Try again");
         };
         pos.make_move(&m);
     }

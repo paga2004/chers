@@ -30,3 +30,23 @@ pub enum FenParsingError {
     #[error("invalid fullmove number")]
     InvalidFullmoveNumber,
 }
+
+/// Error returned by [`Move::from_smith_notation`](../struct.Move.html#method.from_smith_notation)
+#[derive(Error, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MoveParsingError {
+    /// Move too short
+    #[error("Move too short")]
+    TooShort,
+    /// Invalid file character
+    #[error("invalid file: {0}")]
+    InvalidFile(char),
+    /// Invalid rank character
+    #[error("invalid rank: {0}")]
+    InvalidRank(char),
+    /// Invalid promotion piece character
+    #[error("invalid capture indicator: {0}")]
+    InvalidCaptureIndicatior(char),
+    /// Invalid promotion piece character
+    #[error("invalid promotion piece: {0}")]
+    InvalidPromotionPiece(char),
+}

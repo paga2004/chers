@@ -11,7 +11,7 @@ pub enum File {
 }
 
 impl File {
-    /// Creates a new `File`
+    /// Creates a new `File`.
     ///
     /// # Panics
     ///
@@ -20,22 +20,19 @@ impl File {
         Self::try_from(index).unwrap()
     }
 
-    /// Creates a new `File` from a char.
-    ///
-    /// # Panics
-    ///
-    /// Panics if `c` is not in the range `'a'..='h'`
-    pub fn from_char(c: char) -> Self {
+    /// Creates a new `File` from a character or returns `None` if `c` is not in the range
+    /// `'a'..='h'`.
+    pub fn from_char(c: char) -> Option<Self> {
         match c {
-            'a' => Self::A,
-            'b' => Self::B,
-            'c' => Self::C,
-            'd' => Self::D,
-            'e' => Self::E,
-            'f' => Self::F,
-            'g' => Self::G,
-            'h' => Self::H,
-            _ => panic!("Invalid char {}", c),
+            'a' => Some(Self::A),
+            'b' => Some(Self::B),
+            'c' => Some(Self::C),
+            'd' => Some(Self::D),
+            'e' => Some(Self::E),
+            'f' => Some(Self::F),
+            'g' => Some(Self::G),
+            'h' => Some(Self::H),
+            _ => None,
         }
     }
 }

@@ -27,22 +27,19 @@ impl Rank {
         Self::try_from(index).unwrap()
     }
 
-    /// Creates a new `Rank` from a char.
-    ///
-    /// # Panics
-    ///
-    /// Panics if `c` is not in the range `'1'..='8'`
-    pub fn from_char(c: char) -> Self {
+    /// Creates a new `Rank` from a character or returns `None` if `c` is not in the range
+    /// `1..=8`.
+    pub fn from_char(c: char) -> Option<Self> {
         match c {
-            '1' => Self::First,
-            '2' => Self::Second,
-            '3' => Self::Third,
-            '4' => Self::Fourth,
-            '5' => Self::Fifth,
-            '6' => Self::Sixth,
-            '7' => Self::Seventh,
-            '8' => Self::Eighth,
-            _ => panic!("Invalid char {}", c),
+            '1' => Some(Self::First),
+            '2' => Some(Self::Second),
+            '3' => Some(Self::Third),
+            '4' => Some(Self::Fourth),
+            '5' => Some(Self::Fifth),
+            '6' => Some(Self::Sixth),
+            '7' => Some(Self::Seventh),
+            '8' => Some(Self::Eighth),
+            _ => None,
         }
     }
 }
