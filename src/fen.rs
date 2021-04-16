@@ -1,8 +1,11 @@
 use crate::error::FenParsingError;
-use crate::position::calculate_index;
+use crate::position::BoardState;
 use crate::Color;
+use crate::File;
 use crate::Piece;
 use crate::Position;
+use crate::Rank;
+use crate::Square;
 
 pub(crate) const STARTING_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
@@ -31,7 +34,7 @@ impl Position {
 
         Ok(Self {
             pieces,
-            color_to_move,
+            active_color: color_to_move,
         })
     }
 
@@ -41,9 +44,9 @@ impl Position {
     }
 }
 
-fn parse_pieces(s: &str) -> Result<[Option<Piece>; 64], FenParsingError> {
+fn parse_pieces(s: &str) -> Result<[BoardState; 120], FenParsingError> {
     let mut chars = s.chars();
-    let mut pieces = [None; 64];
+    let mut pieces = [BoardState::OffBoard; 120];
 
     let mut rank = 7;
     let mut file = 0;
@@ -57,14 +60,17 @@ fn parse_pieces(s: &str) -> Result<[Option<Piece>; 64], FenParsingError> {
                 rank -= 1;
                 continue;
             }
-            c @ '0'..='9' => {
-                file += c.to_digit(10).unwrap() as usize;
+            c @ '0'..='8' => {
+                for _ in 0..c.to_digit(10).unwrap() {
+                    pieces[Square::new(File::new(file), Rank::new(rank))] = BoardState::Empty;
+                    file += 1;
+                }
                 continue;
             }
+            '9' => return Err(FenParsingError::WrongNumberOfFiles),
             c => {
                 let piece = Piece::from_char(c).ok_or(FenParsingError::InvalidPiece(c))?;
-                let index = calculate_index(file, rank);
-                pieces[index] = Some(piece);
+                pieces[Square::new(File::new(file), Rank::new(rank))] = BoardState::Piece(piece);
                 file += 1;
             }
         }
@@ -84,22 +90,28 @@ mod tests {
     use crate::PieceType;
 
     /// Returns Option<Piece> from a char. This makes it easier to create Pieces in the following tests.
-    fn p(symbol: char) -> Option<Piece> {
-        let piece_type = match symbol.to_ascii_lowercase() {
-            'p' => PieceType::Pawn,
-            'n' => PieceType::Knight,
-            'b' => PieceType::Bishop,
-            'r' => PieceType::Rook,
-            'q' => PieceType::Queen,
-            'k' => PieceType::King,
-            other => panic!("Invalid piece: {}", other),
-        };
-        let color = if symbol.is_uppercase() {
-            Color::White
-        } else {
-            Color::Black
-        };
-        Some(Piece { piece_type, color })
+    fn p(symbol: char) -> BoardState {
+        match symbol {
+            ' ' => BoardState::Empty,
+            '-' => BoardState::OffBoard,
+            other => {
+                let piece_type = match other.to_ascii_lowercase() {
+                    'p' => PieceType::Pawn,
+                    'n' => PieceType::Knight,
+                    'b' => PieceType::Bishop,
+                    'r' => PieceType::Rook,
+                    'q' => PieceType::Queen,
+                    'k' => PieceType::King,
+                    other => panic!("invalid piece: {}", other),
+                };
+                let color = if symbol.is_uppercase() {
+                    Color::White
+                } else {
+                    Color::Black
+                };
+                BoardState::Piece(Piece { piece_type, color })
+            }
+        }
     }
 
     #[test]
@@ -150,18 +162,22 @@ mod tests {
 
         #[rustfmt::skip]
         let pieces = [
-            p('R'), p('N'), p('B'), p('Q'), p('K'), p('B'), p('N'), p('R'),
-            p('P'), p('P'), p('P'), p('P'), p('P'), p('P'), p('P'), p('P'),
-            None, None, None, None, None, None, None, None,
-            None, None, None, None, None, None, None, None,
-            None, None, None, None, None, None, None, None,
-            None, None, None, None, None, None, None, None,
-            p('p'), p('p'), p('p'), p('p'), p('p'), p('p'), p('p'), p('p'),
-            p('r'), p('n'), p('b'), p('q'), p('k'), p('b'), p('n'), p('r'),
+            p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'),
+            p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'),
+            p('-'), p('R'), p('N'), p('B'), p('Q'), p('K'), p('B'), p('N'), p('R'), p('-'),
+            p('-'), p('P'), p('P'), p('P'), p('P'), p('P'), p('P'), p('P'), p('P'), p('-'),
+            p('-'), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p('-'),
+            p('-'), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p('-'),
+            p('-'), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p('-'),
+            p('-'), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p('-'),
+            p('-'), p('p'), p('p'), p('p'), p('p'), p('p'), p('p'), p('p'), p('p'), p('-'),
+            p('-'), p('r'), p('n'), p('b'), p('q'), p('k'), p('b'), p('n'), p('r'), p('-'),
+            p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'),
+            p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'),
         ];
         let expected = Position {
             pieces,
-            color_to_move: Color::White,
+            active_color: Color::White,
         };
 
         assert_eq!(Position::from_fen(fen), Ok(expected));
@@ -173,18 +189,22 @@ mod tests {
 
         #[rustfmt::skip]
         let pieces = [
-            p('R'), p('N'), p('B'), p('Q'), p('K'), p('B'), p('N'), p('R'),
-            p('P'), p('P'), p('P'), p('P'), None, p('P'), p('P'), p('P'),
-            None, None, None, None, None, None, None, None,
-            None, None, None, None, p('P'), None, None, None,
-            None, None, None, None, None, None, None, None,
-            None, None, None, None, None, None, None, None,
-            p('p'), p('p'), p('p'), p('p'), p('p'), p('p'), p('p'), p('p'),
-            p('r'), p('n'), p('b'), p('q'), p('k'), p('b'), p('n'), p('r'),
+            p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'),
+            p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'),
+            p('-'), p('R'), p('N'), p('B'), p('Q'), p('K'), p('B'), p('N'), p('R'), p('-'),
+            p('-'), p('P'), p('P'), p('P'), p('P'), p(' '), p('P'), p('P'), p('P'), p('-'),
+            p('-'), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p('-'),
+            p('-'), p(' '), p(' '), p(' '), p(' '), p('P'), p(' '), p(' '), p(' '), p('-'),
+            p('-'), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p('-'),
+            p('-'), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p('-'),
+            p('-'), p('p'), p('p'), p('p'), p('p'), p('p'), p('p'), p('p'), p('p'), p('-'),
+            p('-'), p('r'), p('n'), p('b'), p('q'), p('k'), p('b'), p('n'), p('r'), p('-'),
+            p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'),
+            p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'),
         ];
         let expected = Position {
             pieces,
-            color_to_move: Color::Black,
+            active_color: Color::Black,
         };
 
         assert_eq!(Position::from_fen(fen), Ok(expected));
@@ -196,18 +216,22 @@ mod tests {
 
         #[rustfmt::skip]
         let pieces = [
-            p('R'), p('N'), p('B'), p('Q'), p('K'), p('B'), p('N'), p('R'),
-            p('P'), p('P'), p('P'), p('P'), None, p('P'), p('P'), p('P'),
-            None, None, None, None, None, None, None, None,
-            None, None, None, None, p('P'), None, None, None,
-            None, None, p('p'), None, None, None, None, None,
-            None, None, None, None, None, None, None, None,
-            p('p'), p('p'), None, p('p'), p('p'), p('p'), p('p'), p('p'),
-            p('r'), p('n'), p('b'), p('q'), p('k'), p('b'), p('n'), p('r'),
+            p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'),
+            p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'),
+            p('-'), p('R'), p('N'), p('B'), p('Q'), p('K'), p('B'), p('N'), p('R'), p('-'),
+            p('-'), p('P'), p('P'), p('P'), p('P'), p(' '), p('P'), p('P'), p('P'), p('-'),
+            p('-'), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p('-'),
+            p('-'), p(' '), p(' '), p(' '), p(' '), p('P'), p(' '), p(' '), p(' '), p('-'),
+            p('-'), p(' '), p(' '), p('p'), p(' '), p(' '), p(' '), p(' '), p(' '), p('-'),
+            p('-'), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p('-'),
+            p('-'), p('p'), p('p'), p(' '), p('p'), p('p'), p('p'), p('p'), p('p'), p('-'),
+            p('-'), p('r'), p('n'), p('b'), p('q'), p('k'), p('b'), p('n'), p('r'), p('-'),
+            p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'),
+            p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'),
         ];
         let expected = Position {
             pieces,
-            color_to_move: Color::White,
+            active_color: Color::White,
         };
 
         assert_eq!(Position::from_fen(fen), Ok(expected));
@@ -219,18 +243,22 @@ mod tests {
 
         #[rustfmt::skip]
         let pieces = [
-            p('R'), p('N'), p('B'), p('Q'), p('K'), p('B'), None, p('R'),
-            p('P'), p('P'), p('P'), p('P'), None, p('P'), p('P'), p('P'),
-            None, None, None, None, None, p('N'), None, None,
-            None, None, None, None, p('P'), None, None, None,
-            None, None, p('p'), None, None, None, None, None,
-            None, None, None, None, None, None, None, None,
-            p('p'), p('p'), None, p('p'), p('p'), p('p'), p('p'), p('p'),
-            p('r'), p('n'), p('b'), p('q'), p('k'), p('b'), p('n'), p('r'),
+            p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'),
+            p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'),
+            p('-'), p('R'), p('N'), p('B'), p('Q'), p('K'), p('B'), p(' '), p('R'), p('-'),
+            p('-'), p('P'), p('P'), p('P'), p('P'), p(' '), p('P'), p('P'), p('P'), p('-'),
+            p('-'), p(' '), p(' '), p(' '), p(' '), p(' '), p('N'), p(' '), p(' '), p('-'),
+            p('-'), p(' '), p(' '), p(' '), p(' '), p('P'), p(' '), p(' '), p(' '), p('-'),
+            p('-'), p(' '), p(' '), p('p'), p(' '), p(' '), p(' '), p(' '), p(' '), p('-'),
+            p('-'), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p('-'),
+            p('-'), p('p'), p('p'), p(' '), p('p'), p('p'), p('p'), p('p'), p('p'), p('-'),
+            p('-'), p('r'), p('n'), p('b'), p('q'), p('k'), p('b'), p('n'), p('r'), p('-'),
+            p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'),
+            p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'),
         ];
         let expected = Position {
             pieces,
-            color_to_move: Color::Black,
+            active_color: Color::Black,
         };
 
         assert_eq!(Position::from_fen(fen), Ok(expected));

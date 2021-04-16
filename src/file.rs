@@ -1,5 +1,7 @@
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 use std::convert::TryFrom;
+use std::ops::Add;
+use std::ops::Sub;
 
 /// Represents a file on the board.
 #[repr(u8)]
@@ -34,6 +36,46 @@ impl File {
             'h' => Some(Self::H),
             _ => None,
         }
+    }
+}
+
+impl Add<u8> for File {
+    type Output = Self;
+
+    /// Adds a `File` and a `u8`.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `self as u8 + rhs >= 8`
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use chers::File;
+    /// assert_eq!(File::E + 2, File::G);
+    /// ```
+    fn add(self, rhs: u8) -> Self::Output {
+        Self::new(self as u8 + rhs)
+    }
+}
+
+impl Sub<u8> for File {
+    type Output = Self;
+
+    /// Subtracts a `u8` from a `File`.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `self as u8 - rhs` < 0`
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use chers::File;
+    /// assert_eq!(File::E - 2, File::C);
+    /// ```
+    fn sub(self, rhs: u8) -> Self::Output {
+        Self::new(self as u8 - rhs)
     }
 }
 

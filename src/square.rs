@@ -1,6 +1,9 @@
+use crate::position::BoardState;
 use crate::{File, Rank};
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 use std::convert::TryFrom;
+use std::ops::Index;
+use std::ops::IndexMut;
 
 /// Represents a square on the board.
 #[repr(u8)]
@@ -8,20 +11,20 @@ use std::convert::TryFrom;
 #[allow(missing_docs)]
 #[rustfmt::skip]
 pub enum Square {
-    A1, B1, C1, D1, E1, F1, G1, H1,
-    A2, B2, C2, D2, E2, F2, G2, H2,
-    A3, B3, C3, D3, E3, F3, G3, H3,
-    A4, B4, C4, D4, E4, F4, G4, H4,
-    A5, B5, C5, D5, E5, F5, G5, H5,
-    A6, B6, C6, D6, E6, F6, G6, H6,
-    A7, B7, C7, D7, E7, F7, G7, H7,
-    A8, B8, C8, D8, E8, F8, G8, H8,
+    A1 = 21, B1, C1, D1, E1, F1, G1, H1,
+    A2 = 31, B2, C2, D2, E2, F2, G2, H2,
+    A3 = 41, B3, C3, D3, E3, F3, G3, H3,
+    A4 = 51, B4, C4, D4, E4, F4, G4, H4,
+    A5 = 61, B5, C5, D5, E5, F5, G5, H5,
+    A6 = 71, B6, C6, D6, E6, F6, G6, H6,
+    A7 = 81, B7, C7, D7, E7, F7, G7, H7,
+    A8 = 91, B8, C8, D8, E8, F8, G8, H8,
 }
 
 impl Square {
     /// Creates a `Square` from file and rank.
     pub fn new(file: File, rank: Rank) -> Self {
-        Self::from_index(file as usize + 8 * rank as usize)
+        Self::from_index(21 + file as usize + 10 * rank as usize)
     }
 
     pub(crate) fn from_index(index: usize) -> Self {
@@ -40,7 +43,7 @@ impl Square {
     /// ```
     pub fn file(self) -> File {
         // self as u8  % 8 is always in the range 0..=7 so the unwrap will never panic
-        File::try_from(self as u8 % 8).unwrap()
+        File::try_from(self as u8 % 10 - 1).unwrap()
     }
 
     /// Returns the rank of the field as an integer
@@ -56,7 +59,21 @@ impl Square {
     pub fn rank(self) -> Rank {
         // self as u8 / 8 is always in the range 0..=7 because self as u8 is always in the range
         // 0..=63 so the unwrap will never panic
-        Rank::try_from(self as u8 / 8).unwrap()
+        Rank::try_from(self as u8 / 10 - 2).unwrap()
+    }
+}
+
+impl Index<Square> for [BoardState; 120] {
+    type Output = BoardState;
+
+    fn index(&self, index: Square) -> &Self::Output {
+        &self[index as usize]
+    }
+}
+
+impl IndexMut<Square> for [BoardState; 120] {
+    fn index_mut(&mut self, index: Square) -> &mut Self::Output {
+        &mut self[index as usize]
     }
 }
 
@@ -74,9 +91,12 @@ mod tests {
 
     #[test]
     fn test_square_from_index() {
-        for i in 0..64 {
-            let s = Square::from_index(i);
-            assert_eq!(s as usize, i);
+        for i in 2..=9 {
+            for j in 1..=8 {
+                let index = 10 * i + j;
+                let s = Square::from_index(index);
+                assert_eq!(s as usize, index);
+            }
         }
     }
 

@@ -1,5 +1,7 @@
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 use std::convert::TryFrom;
+use std::ops::Add;
+use std::ops::Sub;
 
 /// Represents a rank on the board.
 #[repr(u8)]
@@ -41,6 +43,46 @@ impl Rank {
             '8' => Some(Self::Eighth),
             _ => None,
         }
+    }
+}
+
+impl Add<u8> for Rank {
+    type Output = Self;
+
+    /// Adds a `Rank` and a `u8`.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `self as u8 + rhs >= 8`
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use chers::Rank;
+    /// assert_eq!(Rank::Fifth + 2, Rank::Seventh);
+    /// ```
+    fn add(self, rhs: u8) -> Self::Output {
+        Self::new(self as u8 + rhs)
+    }
+}
+
+impl Sub<u8> for Rank {
+    type Output = Self;
+
+    /// Subtracts a `u8` from a `Rank`.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `self as u8 - rhs` < 0`
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use chers::Rank;
+    /// assert_eq!(Rank::Fifth - 2, Rank::Third);
+    /// ```
+    fn sub(self, rhs: u8) -> Self::Output {
+        Self::new(self as u8 - rhs)
     }
 }
 

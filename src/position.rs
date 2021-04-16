@@ -6,6 +6,7 @@
 
 use crate::fen;
 use crate::Color;
+use crate::File;
 use crate::Move;
 use crate::Piece;
 use crate::PieceType;
@@ -13,8 +14,11 @@ use crate::Rank;
 use crate::Square;
 use std::fmt;
 
-pub(crate) fn calculate_index(file: usize, rank: usize) -> usize {
-    file + 8 * rank
+#[derive(Clone, Copy, PartialEq, Debug)]
+pub(crate) enum BoardState {
+    OffBoard,
+    Empty,
+    Piece(Piece),
 }
 
 /// Represents a chess position.
@@ -25,8 +29,8 @@ pub(crate) fn calculate_index(file: usize, rank: usize) -> usize {
 #[derive(PartialEq)]
 pub struct Position {
     /// All the pieces on the board
-    pub(crate) pieces: [Option<Piece>; 64],
-    pub(crate) color_to_move: Color,
+    pub(crate) pieces: [BoardState; 120],
+    pub(crate) active_color: Color,
 }
 
 impl Position {
@@ -39,24 +43,24 @@ impl Position {
     ///
     /// This function does not check whether the move is legal.
     pub fn make_move(&mut self, m: &Move) {
-        if let Some(p) = self.pieces[m.from as usize] {
-            self.color_to_move = !self.color_to_move;
+        if let BoardState::Piece(p) = self.pieces[m.from] {
+            self.active_color = !self.active_color;
             // white castling
             if m.from == Square::E1 && p.piece_type == PieceType::King && p.color == Color::White {
                 // queenside
                 if m.to == Square::C1 {
-                    self.pieces[Square::D1 as usize] = self.pieces[Square::A1 as usize];
-                    self.pieces[Square::C1 as usize] = Some(p);
-                    self.pieces[Square::E1 as usize] = None;
-                    self.pieces[Square::A1 as usize] = None;
+                    self.pieces[Square::D1] = self.pieces[Square::A1];
+                    self.pieces[Square::C1] = BoardState::Piece(p);
+                    self.pieces[Square::E1] = BoardState::Empty;
+                    self.pieces[Square::A1] = BoardState::Empty;
                     return;
                 }
                 // kingside
                 if m.to == Square::G1 {
-                    self.pieces[Square::F1 as usize] = self.pieces[Square::A1 as usize];
-                    self.pieces[Square::G1 as usize] = Some(p);
-                    self.pieces[Square::E1 as usize] = None;
-                    self.pieces[Square::H1 as usize] = None;
+                    self.pieces[Square::F1] = self.pieces[Square::A1];
+                    self.pieces[Square::G1] = BoardState::Piece(p);
+                    self.pieces[Square::E1] = BoardState::Empty;
+                    self.pieces[Square::H1] = BoardState::Empty;
                     return;
                 }
             }
@@ -64,18 +68,18 @@ impl Position {
             if m.from == Square::E8 && p.piece_type == PieceType::King && p.color == Color::Black {
                 // queenside
                 if m.to == Square::C8 {
-                    self.pieces[Square::D8 as usize] = self.pieces[Square::A8 as usize];
-                    self.pieces[Square::C8 as usize] = Some(p);
-                    self.pieces[Square::E8 as usize] = None;
-                    self.pieces[Square::A8 as usize] = None;
+                    self.pieces[Square::D8] = self.pieces[Square::A8];
+                    self.pieces[Square::C8] = BoardState::Piece(p);
+                    self.pieces[Square::E8] = BoardState::Empty;
+                    self.pieces[Square::A8] = BoardState::Empty;
                     return;
                 }
                 // kingside
                 if m.to == Square::G8 {
-                    self.pieces[Square::F8 as usize] = self.pieces[Square::A8 as usize];
-                    self.pieces[Square::G8 as usize] = Some(p);
-                    self.pieces[Square::E8 as usize] = None;
-                    self.pieces[Square::H8 as usize] = None;
+                    self.pieces[Square::F8] = self.pieces[Square::A8];
+                    self.pieces[Square::G8] = BoardState::Piece(p);
+                    self.pieces[Square::E8] = BoardState::Empty;
+                    self.pieces[Square::H8] = BoardState::Empty;
                     return;
                 }
             }
@@ -83,14 +87,15 @@ impl Position {
             // en passent
             if p.piece_type == PieceType::Pawn
                 && m.from.file() != m.to.file()
-                && self.pieces[m.to as usize] == None
+                && self.pieces[m.to] == BoardState::Empty
             {
                 let capture_field = if p.color == Color::White {
-                    Square::new(m.to.file(), Rank::new(m.to.rank() as u8 - 1))
+                    Square::new(m.to.file(), m.to.rank() - 1)
                 } else {
-                    Square::new(m.to.file(), Rank::new(m.to.rank() as u8 + 1))
+                    Square::new(m.to.file(), m.to.rank() + 1)
                 };
-                self.pieces[capture_field as usize] = None;
+                dbg!(capture_field);
+                self.pieces[capture_field] = BoardState::Empty;
             }
 
             // promotion
@@ -101,8 +106,8 @@ impl Position {
             };
 
             // normal move
-            self.pieces[m.to as usize] = Some(piece);
-            self.pieces[m.from as usize] = None;
+            self.pieces[m.to] = BoardState::Piece(piece);
+            self.pieces[m.from] = BoardState::Empty;
         }
     }
 }
@@ -111,23 +116,25 @@ impl fmt::Display for Position {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         // print flags
         writeln!(f)?;
-        writeln!(f, "{} to move", self.color_to_move)?;
+        writeln!(f, "{} to move", self.active_color)?;
         writeln!(f)?;
 
         // print board
         writeln!(f, "  ┌───┬───┬───┬───┬───┬───┬───┬───┐")?;
-        for rank in (0..8).rev() {
-            write!(f, "{} │", rank + 1)?;
-            for file in 0..8 {
+        for i in (0..8).rev() {
+            let rank = Rank::new(i);
+            write!(f, "{} │", i + 1)?;
+            for j in 0..8 {
+                let file = File::new(j);
                 write!(f, " ")?;
-                if let Some(piece) = self.pieces[calculate_index(file, rank)] {
+                if let BoardState::Piece(piece) = self.pieces[Square::new(file, rank)] {
                     write!(f, "{}", piece)?;
                 } else {
                     write!(f, " ")?;
                 }
                 write!(f, " │")?;
             }
-            if rank > 0 {
+            if i > 0 {
                 writeln!(f, "\n  ├───┼───┼───┼───┼───┼───┼───┼───┤")?;
             } else {
                 writeln!(f, "\n  └───┴───┴───┴───┴───┴───┴───┴───┘")?;
