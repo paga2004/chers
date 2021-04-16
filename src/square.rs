@@ -79,6 +79,8 @@ impl IndexMut<Square> for [BoardState; 120] {
 
 #[cfg(test)]
 mod tests {
+    use pretty_assertions::assert_eq;
+
     use super::*;
 
     #[test]

@@ -158,6 +158,8 @@ impl fmt::Debug for Position {
 
 #[cfg(test)]
 mod tests {
+    use pretty_assertions::assert_eq;
+
     use super::*;
 
     /// Creates a function to test `Position::make_move`.

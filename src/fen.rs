@@ -86,6 +86,8 @@ fn parse_color(s: &str) -> Result<Color, FenParsingError> {
 
 #[cfg(test)]
 mod tests {
+    use pretty_assertions::assert_eq;
+
     use super::*;
     use crate::PieceType;
 

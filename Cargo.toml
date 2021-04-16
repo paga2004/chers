@@ -16,3 +16,6 @@ path = "src/main.rs"
 [dependencies]
 num_enum = "0.5.1"
 thiserror = "1.0.24"
+
+[dev-dependencies]
+pretty_assertions = "0.7.2"
