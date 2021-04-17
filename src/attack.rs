@@ -122,9 +122,8 @@ mod tests {
                     for i in 0..8 {
                         for j in 0..8 {
                             let square = Square::new(File::new(i), Rank::new(j));
-                            print!("{:?} ", square);
                             let expected = attacked_squares.contains(&square);
-                            assert_eq!(position.is_attacked(square, $color), expected);
+                            assert_eq!(position.is_attacked(square, $color), expected, "Failed at {:?}", square);
                         }
                     }
                 }
