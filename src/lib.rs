@@ -11,6 +11,7 @@
 // Warn on missing docs.
 #![warn(missing_docs)]
 
+mod attack;
 mod color;
 mod fen;
 mod file;

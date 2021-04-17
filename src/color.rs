@@ -31,6 +31,23 @@ impl Color {
             _ => None,
         }
     }
+
+    /// Returns `white` if `self == Color::White` and `black` if `self == Color::Black`
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use chers::Color;
+    /// let color = Color::White;
+    ///
+    /// assert_eq!(color.fold("white", "black"), "white");
+    /// ```
+    pub fn fold<T>(self, white: T, black: T) -> T {
+        match self {
+            Self::White => white,
+            Self::Black => black,
+        }
+    }
 }
 
 impl ops::Not for Color {

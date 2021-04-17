@@ -1,5 +1,6 @@
 use crate::Color;
 use std::fmt;
+use std::ops::Index;
 
 /// Represents a piece without considering its color.
 #[derive(Copy, Clone, PartialEq, Debug)]
@@ -40,6 +41,13 @@ impl PieceType {
     }
 }
 
+impl<T> Index<PieceType> for [T; 6] {
+    type Output = T;
+
+    fn index(&self, index: PieceType) -> &Self::Output {
+        &self[index as usize]
+    }
+}
 /// Represents a piece.
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub struct Piece {
@@ -75,6 +83,16 @@ impl Piece {
         };
         Some(Piece::new(piece_type, color))
     }
+
+    /// Returns true if the color of `self` matches `color`
+    pub fn is_color(self, color: Color) -> bool {
+        self.color == color
+    }
+
+    /// Returns true if the piece type of `self` matches `piece_type`
+    pub fn is_type(self, piece_type: PieceType) -> bool {
+        self.piece_type == piece_type
+    }
 }
 
 impl fmt::Display for Piece {
@@ -92,5 +110,23 @@ impl fmt::Display for Piece {
         } else {
             write!(f, "{}", symbol)
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use pretty_assertions::assert_eq;
+
+    use super::*;
+
+    #[test]
+    fn test_piece_type_index() {
+        let a = [1, 2, 3, 4, 5, 6];
+        assert_eq!(a[PieceType::Pawn], 1);
+        assert_eq!(a[PieceType::Knight], 2);
+        assert_eq!(a[PieceType::Bishop], 3);
+        assert_eq!(a[PieceType::Rook], 4);
+        assert_eq!(a[PieceType::Queen], 5);
+        assert_eq!(a[PieceType::King], 6);
     }
 }
