@@ -16,6 +16,7 @@ mod color;
 mod fen;
 mod file;
 mod r#move;
+mod move_list;
 mod piece;
 mod position;
 mod rank;
@@ -31,6 +32,7 @@ pub use color::Color;
 pub use piece::Piece;
 pub use piece::PieceType;
 
+pub use move_list::MoveList;
 pub use r#move::Move;
 
 pub use position::Position;
