@@ -1,5 +1,6 @@
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 use std::convert::TryFrom;
+use std::fmt;
 use std::ops::Add;
 use std::ops::Sub;
 
@@ -46,6 +47,11 @@ impl Rank {
     }
 }
 
+impl fmt::Display for Rank {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::result::Result<(), std::fmt::Error> {
+        write!(f, "{}", *self as u8 + 1)
+    }
+}
 impl Add<u8> for Rank {
     type Output = Self;
 

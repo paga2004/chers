@@ -1,9 +1,4 @@
-//! This module contains the board representation.
-//!
-//! [Little-Endian Rank-File Mapping][LERF] is used everywhere.
-//!
-//! [LERF]: https://www.chessprogramming.org/Square_Mapping_Considerations#Little-Endian%20Rank-File%20Mapping
-
+use crate::castling_rights::CastlingRights;
 use crate::fen;
 use crate::Color;
 use crate::File;
@@ -13,6 +8,15 @@ use crate::PieceType;
 use crate::Rank;
 use crate::Square;
 use std::fmt;
+
+pub(crate) const WHITE_PAWN_OFFSET: i8 = 10;
+pub(crate) const BLACK_PAWN_OFFSET: i8 = -10;
+pub(crate) const WHITE_PAWN_CAPTURE_OFFSETS: [i8; 2] = [9, 11];
+pub(crate) const BLACK_PAWN_CAPTURE_OFFSETS: [i8; 2] = [-9, -11];
+pub(crate) const KNIGHT_OFFSETS: [i8; 8] = [-21, -19, -12, -8, 8, 12, 19, 21];
+pub(crate) const BISHOP_OFFSETS: [i8; 4] = [-11, -9, 9, 11];
+pub(crate) const ROOK_OFFSETS: [i8; 4] = [-10, -1, 1, 10];
+pub(crate) const KING_OFFSETS: [i8; 8] = [-11, -10, -9, -1, 1, 9, 10, 11];
 
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub(crate) enum BoardState {
@@ -26,11 +30,12 @@ pub(crate) enum BoardState {
 /// This is the heart of the crate. Most of its functionality can be accessed achieved with this
 /// struct.
 #[allow(missing_copy_implementations)] // copying a position is expensive and should be avoided
-#[derive(PartialEq)]
+#[derive(PartialEq, Clone)]
 pub struct Position {
-    /// All the pieces on the board
     pub(crate) pieces: [BoardState; 120],
-    pub(crate) active_color: Color,
+    pub(crate) side_to_move: Color,
+    pub(crate) castling_rights: CastlingRights,
+    pub(crate) en_passant_square: Option<Square>,
 }
 
 impl Position {
@@ -44,7 +49,49 @@ impl Position {
     /// This function does not check whether the move is legal.
     pub fn make_move(&mut self, m: &Move) {
         if let BoardState::Piece(p) = self.pieces[m.from] {
-            self.active_color = !self.active_color;
+            self.side_to_move = !self.side_to_move;
+
+            // en passant square
+            self.en_passant_square = None;
+            if p.is_type(PieceType::Pawn) {
+                let (starting_rank, en_passant_rank, double_push_rank) = p.color.map(
+                    (Rank::Second, Rank::Third, Rank::Fourth),
+                    (Rank::Seventh, Rank::Sixth, Rank::Fifth),
+                );
+
+                // TODO: store this information in the move
+                if m.from.rank() == starting_rank && m.to.rank() == double_push_rank {
+                    self.en_passant_square = Some(Square::new(m.to.file(), en_passant_rank));
+                }
+            }
+
+            // castling rights
+            match m.from {
+                Square::A1 => {
+                    self.castling_rights.white_queen_side = false;
+                }
+                Square::E1 => {
+                    self.castling_rights.white_queen_side = false;
+                    self.castling_rights.white_king_side = false;
+                }
+                Square::H1 => {
+                    self.castling_rights.white_king_side = false;
+                }
+
+                Square::A8 => {
+                    self.castling_rights.black_queen_side = false;
+                }
+                Square::E8 => {
+                    self.castling_rights.black_queen_side = false;
+                    self.castling_rights.black_king_side = false;
+                }
+                Square::H8 => {
+                    self.castling_rights.black_king_side = false;
+                }
+
+                _ => {}
+            }
+
             // white castling
             if m.from == Square::E1 && p.piece_type == PieceType::King && p.color == Color::White {
                 // queenside
@@ -112,11 +159,24 @@ impl Position {
     }
 }
 
+impl Default for Position {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl fmt::Display for Position {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         // print flags
         writeln!(f)?;
-        writeln!(f, "{} to move", self.active_color)?;
+        writeln!(f, "Active color: {}", self.side_to_move)?;
+        writeln!(f, "Castling rights: {}", self.castling_rights)?;
+        write!(f, "En passant: ")?;
+        if let Some(s) = self.en_passant_square {
+            writeln!(f, "{}", s)?;
+        } else {
+            writeln!(f, "-")?;
+        }
         writeln!(f)?;
 
         // print board
@@ -280,7 +340,9 @@ mod tests {
     #[test]
     fn test_position_display() {
         let expected = r"
-White to move
+Active color: white
+Castling rights: KQkq
+En passant: -
 
   ┌───┬───┬───┬───┬───┬───┬───┬───┐
 8 │ r │ n │ b │ q │ k │ b │ n │ r │

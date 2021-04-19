@@ -1,16 +1,14 @@
 use crate::position::BoardState;
+use crate::position::{
+    BISHOP_OFFSETS, BLACK_PAWN_CAPTURE_OFFSETS, KING_OFFSETS, KNIGHT_OFFSETS, ROOK_OFFSETS,
+    WHITE_PAWN_CAPTURE_OFFSETS,
+};
 use crate::Color;
+use crate::File;
 use crate::PieceType;
 use crate::Position;
+use crate::Rank;
 use crate::Square;
-
-const KNIGHT_OFFSETS: [i8; 8] = [-21, -19, -12, -8, 8, 12, 19, 21];
-const BISHOP_OFFSETS: [i8; 4] = [-11, -9, 9, 11];
-const ROOK_OFFSETS: [i8; 4] = [-10, -1, 1, 10];
-const KING_OFFSETS: [i8; 8] = [-11, -10, -9, -1, 1, 9, 10, 11];
-
-const WHITE_PAWN_OFFSETS: [i8; 2] = [-9, -11];
-const BLACK_PAWN_OFFSETS: [i8; 2] = [9, 11];
 
 impl Position {
     /// Returns wether a given `Square` is attacked by any piece of a given `Color`.
@@ -31,7 +29,7 @@ impl Position {
         let index = square as usize;
 
         // pawns
-        for offset in &attacker.fold(WHITE_PAWN_OFFSETS, BLACK_PAWN_OFFSETS) {
+        for offset in &attacker.map(BLACK_PAWN_CAPTURE_OFFSETS, WHITE_PAWN_CAPTURE_OFFSETS) {
             if let BoardState::Piece(p) = self.pieces[(index as i8 + offset) as usize] {
                 if p.is_type(PieceType::Pawn) && p.is_color(attacker) {
                     return true;
@@ -50,8 +48,8 @@ impl Position {
 
         // bishops and queens
         for offset in &BISHOP_OFFSETS {
-            let mut target_square = (index as i8 + offset) as usize;
-            let mut state = self.pieces[target_square];
+            let mut target = (index as i8 + offset) as usize;
+            let mut state = self.pieces[target];
             while state != BoardState::OffBoard {
                 if let BoardState::Piece(p) = state {
                     if (p.is_type(PieceType::Bishop) || p.is_type(PieceType::Queen))
@@ -61,15 +59,15 @@ impl Position {
                     }
                     break;
                 }
-                target_square = (target_square as i8 + offset) as usize;
-                state = self.pieces[target_square];
+                target = (target as i8 + offset) as usize;
+                state = self.pieces[target];
             }
         }
 
         // rooks and queens
         for offset in &ROOK_OFFSETS {
-            let mut target_square = (index as i8 + offset) as usize;
-            let mut state = self.pieces[target_square];
+            let mut target = (index as i8 + offset) as usize;
+            let mut state = self.pieces[target];
             while state != BoardState::OffBoard {
                 if let BoardState::Piece(p) = state {
                     if (p.is_type(PieceType::Rook) || p.is_type(PieceType::Queen))
@@ -79,8 +77,8 @@ impl Position {
                     }
                     break;
                 }
-                target_square = (target_square as i8 + offset) as usize;
-                state = self.pieces[target_square];
+                target = (target as i8 + offset) as usize;
+                state = self.pieces[target];
             }
         }
 
@@ -93,7 +91,50 @@ impl Position {
             }
         }
 
-        return false;
+        false
+    }
+
+    /// Returns wether the side to move is in check.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use chers::Position;
+    /// let pos1 = Position::new();
+    /// let pos2 = Position::from_fen("rnbqkbnr/ppp1pppp/8/1B1p4/4P3/8/PPPP1PPP/RNBQK1NR b KQkq - 1 2").unwrap();
+    ///
+    /// assert!(!pos1.is_check());
+    /// assert!(pos2.is_check());
+    /// ```
+    pub fn is_check(&self) -> bool {
+        self.in_check(self.side_to_move)
+    }
+
+    /// Returns wether the given side is in check.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use chers::{Position, Color};
+    /// let pos = Position::from_fen("rnbqkbnr/ppp1pppp/8/1B1p4/4P3/8/PPPP1PPP/RNBQK1NR b KQkq - 1 2").unwrap();
+    ///
+    /// assert!(!pos.in_check(Color::White));
+    /// assert!(pos.in_check(Color::Black));
+    /// ```
+    pub fn in_check(&self, side: Color) -> bool {
+        // FIXME: This loop really slow.
+        let mut sq = Square::A1;
+        'outer: for i in 0..8 {
+            for j in 0..8 {
+                sq = Square::new(File::new(i), Rank::new(j));
+                if let BoardState::Piece(p) = self.pieces[sq] {
+                    if p.is_type(PieceType::King) && p.is_color(side) {
+                        break 'outer;
+                    }
+                }
+            }
+        }
+        self.is_attacked(sq, !side)
     }
 }
 

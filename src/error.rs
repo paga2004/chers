@@ -2,7 +2,7 @@
 
 use thiserror::Error;
 
-/// Error returned by [`Position::from_fen`](../struct.Position.html#method.from_fen)
+/// Error returned by [`Position::from_fen`](crate::Position::from_fen)
 #[derive(Error, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FenParsingError {
     /// FEN too short
@@ -22,7 +22,7 @@ pub enum FenParsingError {
     InvalidCastlingRights,
     /// Invalid en passant square
     #[error("invalid en passant square")]
-    InvalidEnPassantSquare,
+    InvalidEnPassantSquare(#[from] SquareParsingError),
     /// Invalid halfmove clock
     #[error("invalid halfmove clock")]
     InvalidHalfMoveClock,
@@ -49,4 +49,28 @@ pub enum MoveParsingError {
     /// Invalid promotion piece character
     #[error("invalid promotion piece: {0}")]
     InvalidPromotionPiece(char),
+}
+
+/// Error returned by [`Square::from_str`](../enum.Square.html#impl-FromStr).
+#[derive(Error, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SquareParsingError {
+    /// Square too short
+    #[error("Square too short")]
+    TooShort,
+    /// Invalid file character
+    #[error("invalid file: {0}")]
+    InvalidFile(char),
+    /// Invalid rank character
+    #[error("invalid rank: {0}")]
+    InvalidRank(char),
+}
+
+impl From<SquareParsingError> for MoveParsingError {
+    fn from(err: SquareParsingError) -> Self {
+        match err {
+            SquareParsingError::TooShort => MoveParsingError::TooShort,
+            SquareParsingError::InvalidFile(c) => MoveParsingError::InvalidFile(c),
+            SquareParsingError::InvalidRank(c) => MoveParsingError::InvalidRank(c),
+        }
+    }
 }

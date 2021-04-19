@@ -40,9 +40,9 @@ impl Color {
     /// # use chers::Color;
     /// let color = Color::White;
     ///
-    /// assert_eq!(color.fold("white", "black"), "white");
+    /// assert_eq!(color.map("white", "black"), "white");
     /// ```
-    pub fn fold<T>(self, white: T, black: T) -> T {
+    pub fn map<T>(self, white: T, black: T) -> T {
         match self {
             Self::White => white,
             Self::Black => black,
@@ -54,19 +54,12 @@ impl ops::Not for Color {
     type Output = Self;
 
     fn not(self) -> Self::Output {
-        match self {
-            Color::White => Color::Black,
-            Color::Black => Color::White,
-        }
+        self.map(Color::Black, Color::White)
     }
 }
 
 impl fmt::Display for Color {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Color::White => write!(f, "White")?,
-            Color::Black => write!(f, "Black")?,
-        }
-        Ok(())
+        write!(f, "{}", self.map("white", "black"))
     }
 }

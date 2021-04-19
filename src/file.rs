@@ -1,5 +1,6 @@
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 use std::convert::TryFrom;
+use std::fmt;
 use std::ops::Add;
 use std::ops::Sub;
 
@@ -22,7 +23,7 @@ impl File {
         Self::try_from(index).unwrap()
     }
 
-    /// Creates a new `File` from a character or returns `None` if `c` is not in the range
+    /// Creates a new `File` from a character or returns [`None`] if `c` is not in the range
     /// `'a'..='h'`.
     pub fn from_char(c: char) -> Option<Self> {
         match c {
@@ -36,6 +37,12 @@ impl File {
             'h' => Some(Self::H),
             _ => None,
         }
+    }
+}
+
+impl fmt::Display for File {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", (b'a' + *self as u8) as char)
     }
 }
 

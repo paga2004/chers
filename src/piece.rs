@@ -39,6 +39,34 @@ impl PieceType {
             _ => None,
         }
     }
+
+    /// Returns the english lowercase letter corresponding to the `PieceType`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use chers::PieceType;
+    ///
+    /// assert_eq!(PieceType::Pawn.to_char(), 'p');
+    /// assert_eq!(PieceType::Knight.to_char(), 'n');
+    /// assert_eq!(PieceType::King.to_char(), 'k');
+    /// ```
+    pub fn to_char(&self) -> char {
+        match self {
+            Self::Pawn => 'p',
+            Self::Knight => 'n',
+            Self::Bishop => 'b',
+            Self::Rook => 'r',
+            Self::Queen => 'q',
+            Self::King => 'k',
+        }
+    }
+}
+
+impl fmt::Display for PieceType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.to_char())
+    }
 }
 
 impl<T> Index<PieceType> for [T; 6] {
@@ -97,14 +125,7 @@ impl Piece {
 
 impl fmt::Display for Piece {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let symbol = match self.piece_type {
-            PieceType::Pawn => 'p',
-            PieceType::Knight => 'n',
-            PieceType::Bishop => 'b',
-            PieceType::Rook => 'r',
-            PieceType::Queen => 'q',
-            PieceType::King => 'k',
-        };
+        let symbol = self.piece_type.to_char();
         if self.color == Color::White {
             write!(f, "{}", symbol.to_ascii_uppercase())
         } else {

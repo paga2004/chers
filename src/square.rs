@@ -1,7 +1,9 @@
+use crate::error::SquareParsingError;
 use crate::position::BoardState;
 use crate::{File, Rank};
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 use std::convert::TryFrom;
+use std::fmt;
 use std::ops::Index;
 use std::ops::IndexMut;
 
@@ -60,6 +62,43 @@ impl Square {
         // self as u8 / 8 is always in the range 0..=7 because self as u8 is always in the range
         // 0..=63 so the unwrap will never panic
         Rank::try_from(self as u8 / 10 - 2).unwrap()
+    }
+}
+
+impl std::str::FromStr for Square {
+    type Err = SquareParsingError;
+
+    /// Creates a new `Square` from a `&str` or returns `None`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use chers::{Square, error::SquareParsingError};
+    /// use std::str::FromStr;
+    ///
+    /// assert_eq!(Square::from_str("a1"), Ok(Square::A1));
+    /// assert_eq!(Square::from_str("e4"), Ok(Square::E4));
+    /// assert_eq!(Square::from_str("g8"), Ok(Square::G8));
+    ///
+    /// assert_eq!(Square::from_str(""), Err(SquareParsingError::TooShort));
+    /// assert_eq!(Square::from_str("a"), Err(SquareParsingError::TooShort));
+    /// assert_eq!(Square::from_str("aa"), Err(SquareParsingError::InvalidRank('a')));
+    /// ```
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut chars = s.chars();
+        let f = chars.next().ok_or(SquareParsingError::TooShort)?;
+        let r = chars.next().ok_or(SquareParsingError::TooShort)?;
+        let file = File::from_char(f).ok_or(SquareParsingError::InvalidFile(f))?;
+        let rank = Rank::from_char(r).ok_or(SquareParsingError::InvalidRank(r))?;
+
+        Ok(Square::new(file, rank))
+    }
+}
+
+impl fmt::Display for Square {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::result::Result<(), std::fmt::Error> {
+        write!(f, "{}{}", self.file(), self.rank())
     }
 }
 
@@ -126,5 +165,10 @@ mod tests {
         assert_eq!(Square::A8.rank(), Rank::Eighth);
         assert_eq!(Square::B8.rank(), Rank::Eighth);
         assert_eq!(Square::H8.rank(), Rank::Eighth);
+    }
+
+    #[test]
+    fn test_square_display() {
+        assert_eq!(format!("{}", Square::A1), "a1");
     }
 }

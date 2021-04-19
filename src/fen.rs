@@ -1,4 +1,3 @@
-use crate::error::FenParsingError;
 use crate::position::BoardState;
 use crate::Color;
 use crate::File;
@@ -6,6 +5,8 @@ use crate::Piece;
 use crate::Position;
 use crate::Rank;
 use crate::Square;
+use crate::{castling_rights::CastlingRights, error::FenParsingError};
+use std::str::FromStr;
 
 pub(crate) const STARTING_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
@@ -30,11 +31,15 @@ impl Position {
         let mut next_field = || fields.next().ok_or(FenParsingError::TooShort);
 
         let pieces = parse_pieces(next_field()?)?;
-        let color_to_move = parse_color(next_field()?)?;
+        let active_color = parse_color(next_field()?)?;
+        let castling_rights = parse_castling_rights(next_field()?)?;
+        let en_passant_square = parse_en_passant_square(next_field()?)?;
 
         Ok(Self {
             pieces,
-            active_color: color_to_move,
+            side_to_move: active_color,
+            castling_rights,
+            en_passant_square,
         })
     }
 
@@ -82,6 +87,37 @@ fn parse_pieces(s: &str) -> Result<[BoardState; 120], FenParsingError> {
 fn parse_color(s: &str) -> Result<Color, FenParsingError> {
     let c = s.chars().next().ok_or(FenParsingError::TooShort)?;
     Color::from_char(c).ok_or(FenParsingError::InvalidColor(c))
+}
+
+fn parse_castling_rights(s: &str) -> Result<CastlingRights, FenParsingError> {
+    let mut castling_rights = CastlingRights {
+        white_king_side: false,
+        white_queen_side: false,
+        black_king_side: false,
+        black_queen_side: false,
+    };
+
+    if s != "-" {
+        for c in s.chars() {
+            match c {
+                'K' => castling_rights.white_king_side = true,
+                'Q' => castling_rights.white_queen_side = true,
+                'k' => castling_rights.black_king_side = true,
+                'q' => castling_rights.black_queen_side = true,
+
+                _ => return Err(FenParsingError::InvalidCastlingRights),
+            }
+        }
+    }
+
+    Ok(castling_rights)
+}
+
+fn parse_en_passant_square(s: &str) -> Result<Option<Square>, FenParsingError> {
+    if s == "-" {
+        return Ok(None);
+    }
+    Ok(Some(Square::from_str(s)?))
 }
 
 #[cfg(test)]
@@ -159,6 +195,20 @@ mod tests {
     }
 
     #[test]
+    fn test_from_fen_invalid_castling_rights() {
+        let fen1 = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkx - 0 1";
+        assert_eq!(
+            Position::from_fen(fen1),
+            Err(FenParsingError::InvalidCastlingRights)
+        );
+        let fen2 = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w x - 0 1";
+        assert_eq!(
+            Position::from_fen(fen2),
+            Err(FenParsingError::InvalidCastlingRights)
+        );
+    }
+
+    #[test]
     fn test_from_fen_starting_position() {
         let fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
@@ -179,7 +229,8 @@ mod tests {
         ];
         let expected = Position {
             pieces,
-            active_color: Color::White,
+            side_to_move: Color::White,
+            ..Default::default()
         };
 
         assert_eq!(Position::from_fen(fen), Ok(expected));
@@ -206,7 +257,9 @@ mod tests {
         ];
         let expected = Position {
             pieces,
-            active_color: Color::Black,
+            side_to_move: Color::Black,
+            en_passant_square: Some(Square::E3),
+            ..Default::default()
         };
 
         assert_eq!(Position::from_fen(fen), Ok(expected));
@@ -233,7 +286,9 @@ mod tests {
         ];
         let expected = Position {
             pieces,
-            active_color: Color::White,
+            side_to_move: Color::White,
+            en_passant_square: Some(Square::C6),
+            ..Default::default()
         };
 
         assert_eq!(Position::from_fen(fen), Ok(expected));
@@ -260,7 +315,66 @@ mod tests {
         ];
         let expected = Position {
             pieces,
-            active_color: Color::Black,
+            side_to_move: Color::Black,
+            ..Default::default()
+        };
+
+        assert_eq!(Position::from_fen(fen), Ok(expected));
+    }
+
+    #[test]
+    fn test_from_fen_castling_rights() {
+        let fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w Kq - 0 1";
+
+        #[rustfmt::skip]
+        let pieces = [
+            p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'),
+            p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'),
+            p('-'), p('R'), p('N'), p('B'), p('Q'), p('K'), p('B'), p('N'), p('R'), p('-'),
+            p('-'), p('P'), p('P'), p('P'), p('P'), p('P'), p('P'), p('P'), p('P'), p('-'),
+            p('-'), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p('-'),
+            p('-'), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p('-'),
+            p('-'), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p('-'),
+            p('-'), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p('-'),
+            p('-'), p('p'), p('p'), p('p'), p('p'), p('p'), p('p'), p('p'), p('p'), p('-'),
+            p('-'), p('r'), p('n'), p('b'), p('q'), p('k'), p('b'), p('n'), p('r'), p('-'),
+            p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'),
+            p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'),
+        ];
+        let expected = Position {
+            pieces,
+            side_to_move: Color::White,
+            castling_rights: CastlingRights::new(true, false, false, true),
+            ..Default::default()
+        };
+
+        assert_eq!(Position::from_fen(fen), Ok(expected));
+    }
+
+    #[test]
+    fn test_from_fen_no_castling_rights() {
+        let fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w - - 0 1";
+
+        #[rustfmt::skip]
+        let pieces = [
+            p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'),
+            p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'),
+            p('-'), p('R'), p('N'), p('B'), p('Q'), p('K'), p('B'), p('N'), p('R'), p('-'),
+            p('-'), p('P'), p('P'), p('P'), p('P'), p('P'), p('P'), p('P'), p('P'), p('-'),
+            p('-'), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p('-'),
+            p('-'), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p('-'),
+            p('-'), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p('-'),
+            p('-'), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p('-'),
+            p('-'), p('p'), p('p'), p('p'), p('p'), p('p'), p('p'), p('p'), p('p'), p('-'),
+            p('-'), p('r'), p('n'), p('b'), p('q'), p('k'), p('b'), p('n'), p('r'), p('-'),
+            p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'),
+            p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'),
+        ];
+        let expected = Position {
+            pieces,
+            side_to_move: Color::White,
+            castling_rights: CastlingRights::new(false, false, false, false),
+            ..Default::default()
         };
 
         assert_eq!(Position::from_fen(fen), Ok(expected));

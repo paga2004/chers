@@ -12,9 +12,11 @@
 #![warn(missing_docs)]
 
 mod attack;
+mod castling_rights;
 mod color;
 mod fen;
 mod file;
+mod generate_moves;
 mod r#move;
 mod move_list;
 mod piece;
@@ -35,4 +37,5 @@ pub use piece::PieceType;
 pub use move_list::MoveList;
 pub use r#move::Move;
 
+pub use castling_rights::CastlingRights;
 pub use position::Position;

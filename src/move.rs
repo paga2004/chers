@@ -3,6 +3,7 @@ use crate::File;
 use crate::PieceType;
 use crate::Rank;
 use crate::Square;
+use std::fmt;
 
 /// Represents a chess move.
 ///
@@ -91,6 +92,16 @@ impl Move {
             to: Square::new(to_file, to_rank),
             promotion_piece,
         })
+    }
+}
+
+impl fmt::Display for Move {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}{}", self.from, self.to)?;
+        if let Some(p) = self.promotion_piece {
+            write!(f, "{}", p.to_char().to_ascii_uppercase())?;
+        }
+        Ok(())
     }
 }
 
