@@ -13,7 +13,7 @@ fn main() -> io::Result<()> {
             let mut line = String::new();
             io::stdout().flush()?;
             io::stdin().read_line(&mut line)?; // including '\n'
-            match Move::from_smith_notation(line.trim()) {
+            match Move::from_coordinate_notation(line.trim()) {
                 Ok(m) => {
                     if legal_moves.contains(&m) {
                         break m;

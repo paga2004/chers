@@ -31,27 +31,21 @@ pub enum FenParsingError {
     InvalidFullmoveNumber,
 }
 
-/// Error returned by [`Move::from_smith_notation`](../struct.Move.html#method.from_smith_notation)
+/// Error returned by [`Move::from_coordinate_notation`](../struct.Move.html#method.from_coordinate_notation)
 #[derive(Error, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MoveParsingError {
     /// Move too short
     #[error("Move too short")]
     TooShort,
     /// Invalid file character
-    #[error("invalid file: {0}")]
-    InvalidFile(char),
-    /// Invalid rank character
-    #[error("invalid rank: {0}")]
-    InvalidRank(char),
-    /// Invalid promotion piece character
-    #[error("invalid capture indicator: {0}")]
-    InvalidCaptureIndicatior(char),
+    #[error("invalid square: ({0})")]
+    InvalidSquare(#[from] SquareParsingError),
     /// Invalid promotion piece character
     #[error("invalid promotion piece: {0}")]
     InvalidPromotionPiece(char),
 }
 
-/// Error returned by [`Square::from_str`](../enum.Square.html#impl-FromStr).
+/// Error returned by [`Square::from_algebraic_notation`](crate::Square::from_algebraic_notation).
 #[derive(Error, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SquareParsingError {
     /// Square too short
@@ -63,14 +57,4 @@ pub enum SquareParsingError {
     /// Invalid rank character
     #[error("invalid rank: {0}")]
     InvalidRank(char),
-}
-
-impl From<SquareParsingError> for MoveParsingError {
-    fn from(err: SquareParsingError) -> Self {
-        match err {
-            SquareParsingError::TooShort => MoveParsingError::TooShort,
-            SquareParsingError::InvalidFile(c) => MoveParsingError::InvalidFile(c),
-            SquareParsingError::InvalidRank(c) => MoveParsingError::InvalidRank(c),
-        }
-    }
 }

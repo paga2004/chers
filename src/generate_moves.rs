@@ -59,8 +59,8 @@ impl Position {
     /// let pos = Position::new();
     /// let moves = pos.generate_legal_moves();
     ///
-    /// let m1 = Move::from_smith_notation("e2e4").unwrap();
-    /// let m2 = Move::from_smith_notation("e4e5").unwrap();
+    /// let m1 = Move::from_coordinate_notation("e2e4").unwrap();
+    /// let m2 = Move::from_coordinate_notation("e4e5").unwrap();
     ///
     /// assert!(moves.contains(&m1));
     /// assert!(!moves.contains(&m2));

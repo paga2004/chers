@@ -29,6 +29,32 @@ impl Square {
         Self::from_index(21 + file as usize + 10 * rank as usize)
     }
 
+    /// Creates a new `Square` from a `&str` in algebraic notation.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use chers::{Square, error::SquareParsingError};
+    /// use std::str::FromStr;
+    ///
+    /// assert_eq!(Square::from_algebraic_notation("a1"), Ok(Square::A1));
+    /// assert_eq!(Square::from_algebraic_notation("e4"), Ok(Square::E4));
+    /// assert_eq!(Square::from_algebraic_notation("g8"), Ok(Square::G8));
+    ///
+    /// assert_eq!(Square::from_algebraic_notation(""), Err(SquareParsingError::TooShort));
+    /// assert_eq!(Square::from_algebraic_notation("a"), Err(SquareParsingError::TooShort));
+    /// assert_eq!(Square::from_algebraic_notation("aa"), Err(SquareParsingError::InvalidRank('a')));
+    /// ```
+    pub fn from_algebraic_notation(s: &str) -> Result<Self, SquareParsingError> {
+        let mut chars = s.chars();
+        let f = chars.next().ok_or(SquareParsingError::TooShort)?;
+        let r = chars.next().ok_or(SquareParsingError::TooShort)?;
+        let file = File::from_char(f).ok_or(SquareParsingError::InvalidFile(f))?;
+        let rank = Rank::from_char(r).ok_or(SquareParsingError::InvalidRank(r))?;
+
+        Ok(Square::new(file, rank))
+    }
+
     pub(crate) fn from_index(index: usize) -> Self {
         Self::try_from(index as u8).unwrap()
     }
@@ -62,37 +88,6 @@ impl Square {
         // self as u8 / 8 is always in the range 0..=7 because self as u8 is always in the range
         // 0..=63 so the unwrap will never panic
         Rank::try_from(self as u8 / 10 - 2).unwrap()
-    }
-}
-
-impl std::str::FromStr for Square {
-    type Err = SquareParsingError;
-
-    /// Creates a new `Square` from a `&str` or returns `None`.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use chers::{Square, error::SquareParsingError};
-    /// use std::str::FromStr;
-    ///
-    /// assert_eq!(Square::from_str("a1"), Ok(Square::A1));
-    /// assert_eq!(Square::from_str("e4"), Ok(Square::E4));
-    /// assert_eq!(Square::from_str("g8"), Ok(Square::G8));
-    ///
-    /// assert_eq!(Square::from_str(""), Err(SquareParsingError::TooShort));
-    /// assert_eq!(Square::from_str("a"), Err(SquareParsingError::TooShort));
-    /// assert_eq!(Square::from_str("aa"), Err(SquareParsingError::InvalidRank('a')));
-    /// ```
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let mut chars = s.chars();
-        let f = chars.next().ok_or(SquareParsingError::TooShort)?;
-        let r = chars.next().ok_or(SquareParsingError::TooShort)?;
-        let file = File::from_char(f).ok_or(SquareParsingError::InvalidFile(f))?;
-        let rank = Rank::from_char(r).ok_or(SquareParsingError::InvalidRank(r))?;
-
-        Ok(Square::new(file, rank))
     }
 }
 

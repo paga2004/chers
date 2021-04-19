@@ -7,8 +7,8 @@ use crate::Move;
 /// ```
 /// # use chers::{MoveList, Move};
 ///
-/// let m1 = Move::from_smith_notation("e2e4").unwrap();
-/// let m2 = Move::from_smith_notation("e7e5").unwrap();
+/// let m1 = Move::from_coordinate_notation("e2e4").unwrap();
+/// let m2 = Move::from_coordinate_notation("e7e5").unwrap();
 ///
 /// let mut list = MoveList::new();
 ///

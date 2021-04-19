@@ -232,7 +232,7 @@ mod tests {
                 #[test]
                 fn $name() {
                     let mut pos = Position::from_fen($position).unwrap();
-                    let m = Move::from_smith_notation($move).unwrap();
+                    let m = Move::from_coordinate_notation($move).unwrap();
                     let expected = Position::from_fen($expected).unwrap();
 
                     pos.make_move(&m);
@@ -330,7 +330,7 @@ mod tests {
     #[test]
     fn test_position_make_move_promotion() {
         let mut position = Position::from_fen("4k3/P7/8/8/8/8/8/4K3 w - - 0 1").unwrap();
-        let m = Move::from_smith_notation("a7a8Q").unwrap();
+        let m = Move::from_coordinate_notation("a7a8Q").unwrap();
         let expected = Position::from_fen("Q3k3/8/8/8/8/8/8/4K3 b - - 0 1").unwrap();
 
         position.make_move(&m);

@@ -6,7 +6,6 @@ use crate::Position;
 use crate::Rank;
 use crate::Square;
 use crate::{castling_rights::CastlingRights, error::FenParsingError};
-use std::str::FromStr;
 
 pub(crate) const STARTING_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
@@ -117,7 +116,7 @@ fn parse_en_passant_square(s: &str) -> Result<Option<Square>, FenParsingError> {
     if s == "-" {
         return Ok(None);
     }
-    Ok(Some(Square::from_str(s)?))
+    Ok(Some(Square::from_algebraic_notation(s)?))
 }
 
 #[cfg(test)]

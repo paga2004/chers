@@ -1,7 +1,5 @@
 use crate::error::MoveParsingError;
-use crate::File;
 use crate::PieceType;
-use crate::Rank;
 use crate::Square;
 use std::fmt;
 
@@ -34,10 +32,9 @@ impl Move {
         }
     }
 
-    /// Creates a new `Move` from [Smith Notation].
+    /// Creates a new `Move` from pure algebraic coordinate notation.
     ///
-    /// Returns an `None` if the string is not a valid move. However, it doesn't check if the move
-    /// is legal.
+    /// The UCI communication protocol uses exactly this notation.
     ///
     /// # Examples
     ///
@@ -45,51 +42,32 @@ impl Move {
     /// # use chers::error::MoveParsingError;
     /// use chers::Move;
     ///
-    /// let m1 = Move::from_smith_notation("e2e4");
-    /// let m2 = Move::from_smith_notation("e2e9");
+    /// let m1 = Move::from_coordinate_notation("e2e4");
+    /// let m2  = Move::from_coordinate_notation("e1g1"); // white short castling
+    /// let m3  = Move::from_coordinate_notation("e7e8q"); // promotion
+    ///
+    /// let m4  = Move::from_coordinate_notation("e4"); // invalid
+    /// let m5  = Move::from_coordinate_notation("Bxe5"); // invalid
     ///
     /// assert!(m1.is_ok());
-    /// assert_eq!(m2, Err(MoveParsingError::InvalidRank('9')));
+    /// assert!(m2.is_ok());
+    /// assert!(m3.is_ok());
+    /// assert!(m4.is_err());
+    /// assert!(m5.is_err());
     /// ```
-    ///
-    /// [Smith Notation]: https://web.archive.org/web/20160117212352/https://www.chessclub.com/chessviewer/smith.html
-    pub fn from_smith_notation(m: &str) -> Result<Self, MoveParsingError> {
-        let mut chars = m.chars();
-        let mut c;
-        let mut next_char = || chars.next().ok_or(MoveParsingError::TooShort);
+    pub fn from_coordinate_notation(s: &str) -> Result<Self, MoveParsingError> {
+        let from = s.get(..2).ok_or(MoveParsingError::TooShort)?;
+        let to = s.get(2..4).ok_or(MoveParsingError::TooShort)?;
 
-        c = next_char()?;
-        let from_file = File::from_char(c).ok_or(MoveParsingError::InvalidFile(c))?;
-
-        c = next_char()?;
-        let from_rank = Rank::from_char(c).ok_or(MoveParsingError::InvalidRank(c))?;
-
-        c = next_char()?;
-        let to_file = File::from_char(c).ok_or(MoveParsingError::InvalidFile(c))?;
-
-        c = next_char()?;
-        let to_rank = Rank::from_char(c).ok_or(MoveParsingError::InvalidRank(c))?;
-
-        let promotion_info = match chars.next() {
-            Some(c) if c.is_ascii_lowercase() => {
-                let _ = PieceType::from_char(c)
-                    .ok_or(MoveParsingError::InvalidCaptureIndicatior(c))
-                    .map(|_| ())?;
-
-                chars.next()
-            }
-            other => other,
-        };
-
-        let promotion_piece = if let Some(c) = promotion_info {
-            Some(PieceType::from_char(c).ok_or(MoveParsingError::InvalidPromotionPiece(c))?)
-        } else {
-            None
-        };
+        let promotion_piece = s
+            .chars()
+            .nth(4)
+            .map(|c| PieceType::from_char(c).ok_or(MoveParsingError::InvalidPromotionPiece(c)))
+            .map_or(Ok(None), |r| r.map(Some))?;
 
         Ok(Self {
-            from: Square::new(from_file, from_rank),
-            to: Square::new(to_file, to_rank),
+            from: Square::from_algebraic_notation(from)?,
+            to: Square::from_algebraic_notation(to)?,
             promotion_piece,
         })
     }
@@ -110,108 +88,108 @@ mod tests {
     use pretty_assertions::assert_eq;
 
     use super::*;
+    use crate::error::SquareParsingError;
 
     #[test]
-    fn from_smith_notation_too_short() {
+    fn from_coordinate_notation_too_short() {
         assert_eq!(
-            Move::from_smith_notation(""),
+            Move::from_coordinate_notation(""),
             Err(MoveParsingError::TooShort)
         );
         assert_eq!(
-            Move::from_smith_notation("e2"),
+            Move::from_coordinate_notation("e"),
+            Err(MoveParsingError::TooShort)
+        );
+        assert_eq!(
+            Move::from_coordinate_notation("e2"),
+            Err(MoveParsingError::TooShort)
+        );
+        assert_eq!(
+            Move::from_coordinate_notation("e2e"),
             Err(MoveParsingError::TooShort)
         );
     }
 
     #[test]
-    fn from_smith_notation_invalid_file() {
+    fn from_coordinate_notation_invalid_square() {
         assert_eq!(
-            Move::from_smith_notation("x1e2"),
-            Err(MoveParsingError::InvalidFile('x'))
+            Move::from_coordinate_notation("x1e2"),
+            Err(MoveParsingError::InvalidSquare(
+                SquareParsingError::InvalidFile('x')
+            ))
         );
         assert_eq!(
-            Move::from_smith_notation("e1x2"),
-            Err(MoveParsingError::InvalidFile('x'))
-        );
-    }
-
-    #[test]
-    fn from_smith_notation_invalid_rank() {
-        assert_eq!(
-            Move::from_smith_notation("e2e9"),
-            Err(MoveParsingError::InvalidRank('9'))
-        );
-        assert_eq!(
-            Move::from_smith_notation("e0e2"),
-            Err(MoveParsingError::InvalidRank('0'))
+            Move::from_coordinate_notation("e1x2"),
+            Err(MoveParsingError::InvalidSquare(
+                SquareParsingError::InvalidFile('x')
+            ))
         );
     }
 
     #[test]
-    fn from_smith_notation_invalid_capture_indicator() {
+    fn from_coordinate_notation_invalid_rank() {
         assert_eq!(
-            Move::from_smith_notation("f7f8x"),
-            Err(MoveParsingError::InvalidCaptureIndicatior('x'))
+            Move::from_coordinate_notation("e2e9"),
+            Err(MoveParsingError::InvalidSquare(
+                SquareParsingError::InvalidRank('9')
+            ))
         );
         assert_eq!(
-            Move::from_smith_notation("f7f8xQ"),
-            Err(MoveParsingError::InvalidCaptureIndicatior('x'))
+            Move::from_coordinate_notation("e0e2"),
+            Err(MoveParsingError::InvalidSquare(
+                SquareParsingError::InvalidRank('0')
+            ))
         );
     }
 
     #[test]
-    fn from_smith_notation_invalid_promotion_piece() {
+    fn from_coordinate_notation_invalid_promotion_piece() {
         assert_eq!(
-            Move::from_smith_notation("f7f8pX"),
-            Err(MoveParsingError::InvalidPromotionPiece('X'))
-        );
-        assert_eq!(
-            Move::from_smith_notation("f7f8X"),
+            Move::from_coordinate_notation("f7f8X"),
             Err(MoveParsingError::InvalidPromotionPiece('X'))
         );
     }
 
-    /// Creates a function to test `Move::from_smith_notation`.
+    /// Creates a function to test `Move::from_coordinate_notation`.
     ///
     /// Curly braces are necessary for rustfmt to work, which is nice because it can automatically
     /// wrap long lines.
-    macro_rules! test_move_from_smith_notation {
+    macro_rules! test_move_from_coordinate_notation {
         ({ $($name:ident($move:expr, $from:expr, $to:expr, $promotion_piece:expr $(,)?);)+ }) => {
             $(
                 #[test]
                 #[allow(non_snake_case)]
                 fn $name() {
                     let expected = Move::new($from, $to, $promotion_piece);
-                    assert_eq!(Move::from_smith_notation($move), Ok(expected));
+                    assert_eq!(Move::from_coordinate_notation($move), Ok(expected));
                 }
             )*
         };
         () => {};
     }
 
-    test_move_from_smith_notation!({
-        test_move_from_smith_notation_e2e4("e2e4", Square::E2, Square::E4, None);
-        test_move_from_smith_notation_e4g5p("e4g5p", Square::E4, Square::G5, None);
-        test_move_from_smith_notation_f7f8Q(
+    test_move_from_coordinate_notation!({
+        test_move_from_coordinate_notation_e2e4("e2e4", Square::E2, Square::E4, None);
+        test_move_from_coordinate_notation_e4g5("e4g5", Square::E4, Square::G5, None);
+        test_move_from_coordinate_notation_f7f8Q(
             "f7f8Q",
             Square::F7,
             Square::F8,
             Some(PieceType::Queen),
         );
-        test_move_from_smith_notation_f7f8nQ(
-            "f7f8nQ",
+        test_move_from_coordinate_notation_f7f8R(
+            "f7f8R",
             Square::F7,
             Square::F8,
-            Some(PieceType::Queen),
+            Some(PieceType::Rook),
         );
-        test_move_from_smith_notation_f7f8R("f7f8R", Square::F7, Square::F8, Some(PieceType::Rook));
-        test_move_from_smith_notation_f7f8B(
+        test_move_from_coordinate_notation_f7f8B(
             "f7f8B",
             Square::F7,
             Square::F8,
             Some(PieceType::Bishop),
         );
-        test_move_from_smith_notation_f7f8N(
+        test_move_from_coordinate_notation_f7f8N(
             "f7f8N",
             Square::F7,
             Square::F8,
