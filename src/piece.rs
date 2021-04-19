@@ -45,7 +45,7 @@ impl PieceType {
     /// # Examples
     ///
     /// ```
-    /// # use chers::PieceType;
+    /// use chers::PieceType;
     ///
     /// assert_eq!(PieceType::Pawn.to_char(), 'p');
     /// assert_eq!(PieceType::Knight.to_char(), 'n');
@@ -112,12 +112,12 @@ impl Piece {
         Some(Piece::new(piece_type, color))
     }
 
-    /// Returns true if the color of `self` matches `color`
+    /// Returns true if the color of `self` matches `color`.
     pub fn is_color(self, color: Color) -> bool {
         self.color == color
     }
 
-    /// Returns true if the piece type of `self` matches `piece_type`
+    /// Returns true if the piece type of `self` matches `piece_type`.
     pub fn is_type(self, piece_type: PieceType) -> bool {
         self.piece_type == piece_type
     }

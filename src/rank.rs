@@ -21,11 +21,11 @@ pub enum Rank{
 }
 
 impl Rank {
-    /// Creates a new `Rank`
+    /// Creates a new `Rank`.
     ///
     /// # Panics
     ///
-    /// Panics if the index is not in the range `0..=7`
+    /// Panics if the index is not in the range `0..=7`.
     pub fn new(index: u8) -> Self {
         Self::try_from(index).unwrap()
     }
@@ -59,7 +59,7 @@ impl Add<u8> for Rank {
     ///
     /// # Panics
     ///
-    /// Panics if `self as u8 + rhs >= 8`
+    /// Panics if `self as u8 + rhs >= 8`.
     ///
     /// # Examples
     ///
@@ -79,7 +79,7 @@ impl Sub<u8> for Rank {
     ///
     /// # Panics
     ///
-    /// Panics if `self as u8 - rhs` < 0`
+    /// Panics if `self as u8 - rhs` < 0`.
     ///
     /// # Examples
     ///

@@ -18,7 +18,7 @@ impl File {
     ///
     /// # Panics
     ///
-    /// Panics if `index` is not in the range `0..=7`
+    /// Panics if `index` is not in the range `0..=7`.
     pub fn new(index: u8) -> Self {
         Self::try_from(index).unwrap()
     }
@@ -53,12 +53,13 @@ impl Add<u8> for File {
     ///
     /// # Panics
     ///
-    /// Panics if `self as u8 + rhs >= 8`
+    /// Panics if `self as u8 + rhs >= 8`.
     ///
     /// # Examples
     ///
     /// ```
-    /// # use chers::File;
+    /// use chers::File;
+    ///
     /// assert_eq!(File::E + 2, File::G);
     /// ```
     fn add(self, rhs: u8) -> Self::Output {
@@ -73,12 +74,13 @@ impl Sub<u8> for File {
     ///
     /// # Panics
     ///
-    /// Panics if `self as u8 - rhs` < 0`
+    /// Panics if `self as u8 - rhs` < 0`.
     ///
     /// # Examples
     ///
     /// ```
-    /// # use chers::File;
+    /// use chers::File;
+    ///
     /// assert_eq!(File::E - 2, File::C);
     /// ```
     fn sub(self, rhs: u8) -> Self::Output {

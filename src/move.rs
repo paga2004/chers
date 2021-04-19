@@ -1,4 +1,4 @@
-use crate::error::MoveParsingError;
+use crate::error::ParseMoveError;
 use crate::PieceType;
 use crate::Square;
 use std::fmt;
@@ -39,7 +39,6 @@ impl Move {
     /// # Examples
     ///
     /// ```
-    /// # use chers::error::MoveParsingError;
     /// use chers::Move;
     ///
     /// let m1 = Move::from_coordinate_notation("e2e4");
@@ -55,14 +54,14 @@ impl Move {
     /// assert!(m4.is_err());
     /// assert!(m5.is_err());
     /// ```
-    pub fn from_coordinate_notation(s: &str) -> Result<Self, MoveParsingError> {
-        let from = s.get(..2).ok_or(MoveParsingError::TooShort)?;
-        let to = s.get(2..4).ok_or(MoveParsingError::TooShort)?;
+    pub fn from_coordinate_notation(s: &str) -> Result<Self, ParseMoveError> {
+        let from = s.get(..2).ok_or(ParseMoveError::TooShort)?;
+        let to = s.get(2..4).ok_or(ParseMoveError::TooShort)?;
 
         let promotion_piece = s
             .chars()
             .nth(4)
-            .map(|c| PieceType::from_char(c).ok_or(MoveParsingError::InvalidPromotionPiece(c)))
+            .map(|c| PieceType::from_char(c).ok_or(ParseMoveError::InvalidPromotionPiece(c)))
             .map_or(Ok(None), |r| r.map(Some))?;
 
         Ok(Self {
@@ -88,25 +87,25 @@ mod tests {
     use pretty_assertions::assert_eq;
 
     use super::*;
-    use crate::error::SquareParsingError;
+    use crate::error::ParseSquareError;
 
     #[test]
     fn from_coordinate_notation_too_short() {
         assert_eq!(
             Move::from_coordinate_notation(""),
-            Err(MoveParsingError::TooShort)
+            Err(ParseMoveError::TooShort)
         );
         assert_eq!(
             Move::from_coordinate_notation("e"),
-            Err(MoveParsingError::TooShort)
+            Err(ParseMoveError::TooShort)
         );
         assert_eq!(
             Move::from_coordinate_notation("e2"),
-            Err(MoveParsingError::TooShort)
+            Err(ParseMoveError::TooShort)
         );
         assert_eq!(
             Move::from_coordinate_notation("e2e"),
-            Err(MoveParsingError::TooShort)
+            Err(ParseMoveError::TooShort)
         );
     }
 
@@ -114,14 +113,14 @@ mod tests {
     fn from_coordinate_notation_invalid_square() {
         assert_eq!(
             Move::from_coordinate_notation("x1e2"),
-            Err(MoveParsingError::InvalidSquare(
-                SquareParsingError::InvalidFile('x')
+            Err(ParseMoveError::InvalidSquare(
+                ParseSquareError::InvalidFile('x')
             ))
         );
         assert_eq!(
             Move::from_coordinate_notation("e1x2"),
-            Err(MoveParsingError::InvalidSquare(
-                SquareParsingError::InvalidFile('x')
+            Err(ParseMoveError::InvalidSquare(
+                ParseSquareError::InvalidFile('x')
             ))
         );
     }
@@ -130,14 +129,14 @@ mod tests {
     fn from_coordinate_notation_invalid_rank() {
         assert_eq!(
             Move::from_coordinate_notation("e2e9"),
-            Err(MoveParsingError::InvalidSquare(
-                SquareParsingError::InvalidRank('9')
+            Err(ParseMoveError::InvalidSquare(
+                ParseSquareError::InvalidRank('9')
             ))
         );
         assert_eq!(
             Move::from_coordinate_notation("e0e2"),
-            Err(MoveParsingError::InvalidSquare(
-                SquareParsingError::InvalidRank('0')
+            Err(ParseMoveError::InvalidSquare(
+                ParseSquareError::InvalidRank('0')
             ))
         );
     }
@@ -146,7 +145,7 @@ mod tests {
     fn from_coordinate_notation_invalid_promotion_piece() {
         assert_eq!(
             Move::from_coordinate_notation("f7f8X"),
-            Err(MoveParsingError::InvalidPromotionPiece('X'))
+            Err(ParseMoveError::InvalidPromotionPiece('X'))
         );
     }
 

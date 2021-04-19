@@ -54,7 +54,7 @@ impl Position {
     /// # Examples
     ///
     /// ```
-    /// # use chers::{Position, Move};
+    /// use chers::{Position, Move};
     ///
     /// let pos = Position::new();
     /// let moves = pos.generate_legal_moves();

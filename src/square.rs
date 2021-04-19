@@ -1,4 +1,4 @@
-use crate::error::SquareParsingError;
+use crate::error::ParseSquareError;
 use crate::position::BoardState;
 use crate::{File, Rank};
 use num_enum::{IntoPrimitive, TryFromPrimitive};
@@ -34,23 +34,22 @@ impl Square {
     /// # Examples
     ///
     /// ```
-    /// # use chers::{Square, error::SquareParsingError};
-    /// use std::str::FromStr;
+    /// use chers::{Square, error::ParseSquareError};
     ///
     /// assert_eq!(Square::from_algebraic_notation("a1"), Ok(Square::A1));
     /// assert_eq!(Square::from_algebraic_notation("e4"), Ok(Square::E4));
     /// assert_eq!(Square::from_algebraic_notation("g8"), Ok(Square::G8));
     ///
-    /// assert_eq!(Square::from_algebraic_notation(""), Err(SquareParsingError::TooShort));
-    /// assert_eq!(Square::from_algebraic_notation("a"), Err(SquareParsingError::TooShort));
-    /// assert_eq!(Square::from_algebraic_notation("aa"), Err(SquareParsingError::InvalidRank('a')));
+    /// assert_eq!(Square::from_algebraic_notation(""), Err(ParseSquareError::TooShort));
+    /// assert_eq!(Square::from_algebraic_notation("a"), Err(ParseSquareError::TooShort));
+    /// assert_eq!(Square::from_algebraic_notation("aa"), Err(ParseSquareError::InvalidRank('a')));
     /// ```
-    pub fn from_algebraic_notation(s: &str) -> Result<Self, SquareParsingError> {
+    pub fn from_algebraic_notation(s: &str) -> Result<Self, ParseSquareError> {
         let mut chars = s.chars();
-        let f = chars.next().ok_or(SquareParsingError::TooShort)?;
-        let r = chars.next().ok_or(SquareParsingError::TooShort)?;
-        let file = File::from_char(f).ok_or(SquareParsingError::InvalidFile(f))?;
-        let rank = Rank::from_char(r).ok_or(SquareParsingError::InvalidRank(r))?;
+        let f = chars.next().ok_or(ParseSquareError::TooShort)?;
+        let r = chars.next().ok_or(ParseSquareError::TooShort)?;
+        let file = File::from_char(f).ok_or(ParseSquareError::InvalidFile(f))?;
+        let rank = Rank::from_char(r).ok_or(ParseSquareError::InvalidRank(r))?;
 
         Ok(Square::new(file, rank))
     }
@@ -59,12 +58,12 @@ impl Square {
         Self::try_from(index as u8).unwrap()
     }
 
-    /// Returns the file of the field as an integer
+    /// Returns the file of the field.
     ///
     /// # Examples
     /// ```
-    /// # use chers::Square;
-    /// # use chers::File;
+    /// use chers::{Square, File};
+    ///
     /// assert_eq!(Square::A1.file(), File::A);
     /// assert_eq!(Square::E8.file(), File::E);
     /// assert_eq!(Square::H4.file(), File::H);
@@ -74,12 +73,12 @@ impl Square {
         File::try_from(self as u8 % 10 - 1).unwrap()
     }
 
-    /// Returns the rank of the field as an integer
+    /// Returns the rank of the field.
     ///
     /// # Examples
     /// ```
-    /// # use chers::Square;
-    /// # use chers::Rank;
+    /// use chers::{Square, Rank};
+    ///
     /// assert_eq!(Square::A1.rank(), Rank::First);
     /// assert_eq!(Square::E8.rank(), Rank::Eighth);
     /// assert_eq!(Square::H4.rank(), Rank::Fourth);

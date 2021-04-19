@@ -26,9 +26,6 @@ pub(crate) enum BoardState {
 }
 
 /// Represents a chess position.
-///
-/// This is the heart of the crate. Most of its functionality can be accessed achieved with this
-/// struct.
 #[allow(missing_copy_implementations)] // copying a position is expensive and should be avoided
 #[derive(PartialEq, Clone)]
 pub struct Position {

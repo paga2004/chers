@@ -37,7 +37,8 @@ impl Color {
     /// # Examples
     ///
     /// ```
-    /// # use chers::Color;
+    /// use chers::Color;
+    ///
     /// let color = Color::White;
     ///
     /// assert_eq!(color.map("white", "black"), "white");

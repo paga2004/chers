@@ -16,14 +16,13 @@ impl Position {
     /// # Examples
     ///
     /// ```
-    /// # use chers::{Position, Square, Color};
+    /// use chers::{Position, Square, Color};
+    ///
     /// let mut position = Position::new();
     ///
     /// assert!(position.is_attacked(Square::E6, Color::Black));
     /// assert!(position.is_attacked(Square::E3, Color::White));
     /// assert!(!position.is_attacked(Square::E3, Color::Black));
-    ///
-    ///
     /// ```
     pub fn is_attacked(&self, square: Square, attacker: Color) -> bool {
         let index = square as usize;

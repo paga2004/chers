@@ -5,14 +5,14 @@ use crate::Piece;
 use crate::Position;
 use crate::Rank;
 use crate::Square;
-use crate::{castling_rights::CastlingRights, error::FenParsingError};
+use crate::{castling_rights::CastlingRights, error::ParseFenError};
 
 pub(crate) const STARTING_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
 impl Position {
     /// Creates a Position from a [FEN] string or returns an error if the fen is invalid.
     ///
-    /// At the moment it ignores the active color, castling rights, etc.
+    /// At the moment it ignores halfmove clock and fullmove number.
     ///
     /// # Examples
     ///
@@ -24,10 +24,10 @@ impl Position {
     /// ```
     ///
     /// [FEN]: https://en.wikipedia.org/wiki/Forsyth%E2%80%93Edwards_Notation
-    pub fn from_fen(fen: &str) -> Result<Self, FenParsingError> {
+    pub fn from_fen(fen: &str) -> Result<Self, ParseFenError> {
         let mut fields = fen.split(' ');
 
-        let mut next_field = || fields.next().ok_or(FenParsingError::TooShort);
+        let mut next_field = || fields.next().ok_or(ParseFenError::TooShort);
 
         let pieces = parse_pieces(next_field()?)?;
         let active_color = parse_color(next_field()?)?;
@@ -48,17 +48,17 @@ impl Position {
     }
 }
 
-fn parse_pieces(s: &str) -> Result<[BoardState; 120], FenParsingError> {
+fn parse_pieces(s: &str) -> Result<[BoardState; 120], ParseFenError> {
     let mut chars = s.chars();
     let mut pieces = [BoardState::OffBoard; 120];
 
     let mut rank = 7;
     let mut file = 0;
     while !(rank == 0 && file == 8) {
-        match chars.next().ok_or(FenParsingError::TooShort)? {
+        match chars.next().ok_or(ParseFenError::TooShort)? {
             '/' => {
                 if file != 8 {
-                    return Err(FenParsingError::WrongNumberOfFiles);
+                    return Err(ParseFenError::WrongNumberOfFiles);
                 }
                 file = 0;
                 rank -= 1;
@@ -71,9 +71,9 @@ fn parse_pieces(s: &str) -> Result<[BoardState; 120], FenParsingError> {
                 }
                 continue;
             }
-            '9' => return Err(FenParsingError::WrongNumberOfFiles),
+            '9' => return Err(ParseFenError::WrongNumberOfFiles),
             c => {
-                let piece = Piece::from_char(c).ok_or(FenParsingError::InvalidPiece(c))?;
+                let piece = Piece::from_char(c).ok_or(ParseFenError::InvalidPiece(c))?;
                 pieces[Square::new(File::new(file), Rank::new(rank))] = BoardState::Piece(piece);
                 file += 1;
             }
@@ -83,12 +83,12 @@ fn parse_pieces(s: &str) -> Result<[BoardState; 120], FenParsingError> {
     Ok(pieces)
 }
 
-fn parse_color(s: &str) -> Result<Color, FenParsingError> {
-    let c = s.chars().next().ok_or(FenParsingError::TooShort)?;
-    Color::from_char(c).ok_or(FenParsingError::InvalidColor(c))
+fn parse_color(s: &str) -> Result<Color, ParseFenError> {
+    let c = s.chars().next().ok_or(ParseFenError::TooShort)?;
+    Color::from_char(c).ok_or(ParseFenError::InvalidColor(c))
 }
 
-fn parse_castling_rights(s: &str) -> Result<CastlingRights, FenParsingError> {
+fn parse_castling_rights(s: &str) -> Result<CastlingRights, ParseFenError> {
     let mut castling_rights = CastlingRights {
         white_king_side: false,
         white_queen_side: false,
@@ -104,7 +104,7 @@ fn parse_castling_rights(s: &str) -> Result<CastlingRights, FenParsingError> {
                 'k' => castling_rights.black_king_side = true,
                 'q' => castling_rights.black_queen_side = true,
 
-                _ => return Err(FenParsingError::InvalidCastlingRights),
+                other => return Err(ParseFenError::InvalidCastlingRights(other)),
             }
         }
     }
@@ -112,7 +112,7 @@ fn parse_castling_rights(s: &str) -> Result<CastlingRights, FenParsingError> {
     Ok(castling_rights)
 }
 
-fn parse_en_passant_square(s: &str) -> Result<Option<Square>, FenParsingError> {
+fn parse_en_passant_square(s: &str) -> Result<Option<Square>, ParseFenError> {
     if s == "-" {
         return Ok(None);
     }
@@ -126,7 +126,9 @@ mod tests {
     use super::*;
     use crate::PieceType;
 
-    /// Returns Option<Piece> from a char. This makes it easier to create Pieces in the following tests.
+    /// Returns Option<Piece> from a char.
+    ///
+    /// This makes it easier to create Pieces in the following tests.
     fn p(symbol: char) -> BoardState {
         match symbol {
             ' ' => BoardState::Empty,
@@ -154,7 +156,7 @@ mod tests {
     #[test]
     fn test_from_fen_empty_input() {
         let fen = "";
-        assert_eq!(Position::from_fen(fen), Err(FenParsingError::TooShort));
+        assert_eq!(Position::from_fen(fen), Err(ParseFenError::TooShort));
     }
 
     #[test]
@@ -162,7 +164,7 @@ mod tests {
         let fen = "rnbqkbnr/pppppppp/7/7/7/7/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
         assert_eq!(
             Position::from_fen(fen),
-            Err(FenParsingError::WrongNumberOfFiles)
+            Err(ParseFenError::WrongNumberOfFiles)
         );
     }
 
@@ -171,7 +173,7 @@ mod tests {
         let fen = "rnbqkbnr/pppppppp/9/9/9/9/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
         assert_eq!(
             Position::from_fen(fen),
-            Err(FenParsingError::WrongNumberOfFiles)
+            Err(ParseFenError::WrongNumberOfFiles)
         );
     }
 
@@ -180,7 +182,7 @@ mod tests {
         let fen = "rnbqk?nr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
         assert_eq!(
             Position::from_fen(fen),
-            Err(FenParsingError::InvalidPiece('?'))
+            Err(ParseFenError::InvalidPiece('?'))
         );
     }
 
@@ -189,7 +191,7 @@ mod tests {
         let fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR x KQkq - 0 1";
         assert_eq!(
             Position::from_fen(fen),
-            Err(FenParsingError::InvalidColor('x'))
+            Err(ParseFenError::InvalidColor('x'))
         );
     }
 
@@ -198,12 +200,12 @@ mod tests {
         let fen1 = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkx - 0 1";
         assert_eq!(
             Position::from_fen(fen1),
-            Err(FenParsingError::InvalidCastlingRights)
+            Err(ParseFenError::InvalidCastlingRights('x'))
         );
         let fen2 = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w x - 0 1";
         assert_eq!(
             Position::from_fen(fen2),
-            Err(FenParsingError::InvalidCastlingRights)
+            Err(ParseFenError::InvalidCastlingRights('x'))
         );
     }
 
