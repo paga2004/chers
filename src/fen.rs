@@ -48,6 +48,7 @@ impl Position {
     }
 }
 
+// TODO: Rewrite this function
 fn parse_pieces(s: &str) -> Result<[BoardState; 120], ParseFenError> {
     let mut chars = s.chars();
     let mut pieces = [BoardState::OffBoard; 120];
@@ -65,6 +66,9 @@ fn parse_pieces(s: &str) -> Result<[BoardState; 120], ParseFenError> {
                 continue;
             }
             c @ '0'..='8' => {
+                if file > 7 {
+                    return Err(ParseFenError::WrongNumberOfFiles);
+                }
                 for _ in 0..c.to_digit(10).unwrap() {
                     pieces[Square::new(File::new(file), Rank::new(rank))] = BoardState::Empty;
                     file += 1;
@@ -73,6 +77,9 @@ fn parse_pieces(s: &str) -> Result<[BoardState; 120], ParseFenError> {
             }
             '9' => return Err(ParseFenError::WrongNumberOfFiles),
             c => {
+                if file > 7 {
+                    return Err(ParseFenError::WrongNumberOfFiles);
+                }
                 let piece = Piece::from_char(c).ok_or(ParseFenError::InvalidPiece(c))?;
                 pieces[Square::new(File::new(file), Rank::new(rank))] = BoardState::Piece(piece);
                 file += 1;
@@ -121,263 +128,176 @@ fn parse_en_passant_square(s: &str) -> Result<Option<Square>, ParseFenError> {
 
 #[cfg(test)]
 mod tests {
-    use pretty_assertions::assert_eq;
+    use test_case::test_case;
 
     use super::*;
-    use crate::PieceType;
+    use ParseFenError::*;
 
-    /// Returns Option<Piece> from a char.
-    ///
-    /// This makes it easier to create Pieces in the following tests.
-    fn p(symbol: char) -> BoardState {
-        match symbol {
-            ' ' => BoardState::Empty,
-            '-' => BoardState::OffBoard,
-            other => {
-                let piece_type = match other.to_ascii_lowercase() {
-                    'p' => PieceType::Pawn,
-                    'n' => PieceType::Knight,
-                    'b' => PieceType::Bishop,
-                    'r' => PieceType::Rook,
-                    'q' => PieceType::Queen,
-                    'k' => PieceType::King,
-                    other => panic!("invalid piece: {}", other),
-                };
-                let color = if symbol.is_uppercase() {
-                    Color::White
-                } else {
-                    Color::Black
-                };
-                BoardState::Piece(Piece { piece_type, color })
+    #[test_case("", TooShort; "too short")]
+    #[test_case("rnbqkbnr/pppppppp/7/7/7/7/PPPPPPPP/RNBQKBNR w KQkq - 0 1", WrongNumberOfFiles; "not enough files")]
+    #[test_case("rnbqkbnr/p7p/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", WrongNumberOfFiles; "too many files")]
+    #[test_case("rnbqkbnr/pppppppp/9/9/9/9/PPPPPPPP/RNBQKBNR w KQkq - 0 1", WrongNumberOfFiles; "digit 9 in first sector")]
+    #[test_case("rnbqk?nr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", InvalidPiece('?'); "invalid piece")]
+    #[test_case("k7/8/8/8/8/8/8/k7 x KQkq - 0 1", InvalidColor('x'); "invalid color")]
+    #[test_case("k7/8/8/8/8/8/8/k7 w KQkqx - 0 1", InvalidCastlingRights('x'); "invalid castling rights x")]
+    #[test_case("k7/8/8/8/8/8/8/k7 w KQkqx - 0 1", InvalidCastlingRights('x'); "invalid castling rights trailing character")]
+    fn test_from_fen_invalid(fen: &str, err: ParseFenError) {
+        pretty_assertions::assert_eq!(Position::from_fen(fen), Err(err));
+    }
+
+    #[test_case(
+        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+        [
+            "----------",
+            "----------",
+            "-RNBQKBNR-",
+            "-PPPPPPPP-",
+            "-        -",
+            "-        -",
+            "-        -",
+            "-        -",
+            "-pppppppp-",
+            "-rnbqkbnr-",
+            "----------",
+            "----------",
+        ],
+        Color::White,
+        None,
+        CastlingRights::default()
+        ; "starting position"
+    )]
+    #[test_case(
+        "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1",
+        [
+            "----------",
+            "----------",
+            "-RNBQKBNR-",
+            "-PPPP PPP-",
+            "-        -",
+            "-    P   -",
+            "-        -",
+            "-        -",
+            "-pppppppp-",
+            "-rnbqkbnr-",
+            "----------",
+            "----------",
+        ],
+        Color::Black,
+        Some(Square::E3),
+        CastlingRights::default()
+        ; "e4"
+    )]
+    #[test_case(
+        "rnbqkbnr/pp1ppppp/8/2p5/4P3/8/PPPP1PPP/RNBQKBNR w KQkq c6 0 2",
+        [
+            "----------",
+            "----------",
+            "-RNBQKBNR-",
+            "-PPPP PPP-",
+            "-        -",
+            "-    P   -",
+            "-  p     -",
+            "-        -",
+            "-pp ppppp-",
+            "-rnbqkbnr-",
+            "----------",
+            "----------",
+        ],
+        Color::White,
+        Some(Square::C6),
+        CastlingRights::default()
+        ; "e4 c5"
+    )]
+    #[test_case(
+        "rnbqkbnr/pp1ppppp/8/2p5/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2",
+        [
+           "----------",
+           "----------",
+           "-RNBQKB R-",
+           "-PPPP PPP-",
+           "-     N  -",
+           "-    P   -",
+           "-  p     -",
+           "-        -",
+           "-pp ppppp-",
+           "-rnbqkbnr-",
+           "----------",
+           "----------",
+        ],
+        Color::Black,
+        None,
+        CastlingRights::default()
+        ; "e4 c5 nf3"
+    )]
+    #[test_case(
+        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w Kq - 0 1",
+        [
+           "----------",
+           "----------",
+           "-RNBQKBNR-",
+           "-PPPPPPPP-",
+           "-        -",
+           "-        -",
+           "-        -",
+           "-        -",
+           "-pppppppp-",
+           "-rnbqkbnr-",
+           "----------",
+           "----------",
+        ],
+        Color::White,
+        None,
+        CastlingRights::new(true, false, false, true)
+        ; "castling rights"
+    )]
+    #[test_case(
+        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w - - 0 1",
+        [
+           "----------",
+           "----------",
+           "-RNBQKBNR-",
+           "-PPPPPPPP-",
+           "-        -",
+           "-        -",
+           "-        -",
+           "-        -",
+           "-pppppppp-",
+           "-rnbqkbnr-",
+           "----------",
+           "----------",
+        ],
+        Color::White,
+        None,
+        CastlingRights::new(false, false, false, false)
+        ; "no castling rights"
+    )]
+    fn test_from_fen(
+        fen: &str,
+        pieces: [&str; 12],
+        side_to_move: Color,
+        en_passant_square: Option<Square>,
+        castling_rights: CastlingRights,
+    ) {
+        let bytes: Vec<&[u8]> = pieces.iter().map(|s| s.as_bytes()).collect();
+        let mut piece_array = [BoardState::OffBoard; 120];
+        for i in 0..12 {
+            for j in 0..10 {
+                piece_array[10 * i + j] = match bytes[i][j] {
+                    b'-' => BoardState::OffBoard,
+                    b' ' => BoardState::Empty,
+                    other => {
+                        BoardState::Piece(Piece::from_char(other as char).expect("valid piece"))
+                    }
+                }
             }
         }
-    }
-
-    #[test]
-    fn test_from_fen_empty_input() {
-        let fen = "";
-        assert_eq!(Position::from_fen(fen), Err(ParseFenError::TooShort));
-    }
-
-    #[test]
-    fn test_from_fen_not_enough_files() {
-        let fen = "rnbqkbnr/pppppppp/7/7/7/7/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-        assert_eq!(
-            Position::from_fen(fen),
-            Err(ParseFenError::WrongNumberOfFiles)
-        );
-    }
-
-    #[test]
-    fn test_from_fen_too_many_files() {
-        let fen = "rnbqkbnr/pppppppp/9/9/9/9/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-        assert_eq!(
-            Position::from_fen(fen),
-            Err(ParseFenError::WrongNumberOfFiles)
-        );
-    }
-
-    #[test]
-    fn test_from_fen_invalid_piece() {
-        let fen = "rnbqk?nr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-        assert_eq!(
-            Position::from_fen(fen),
-            Err(ParseFenError::InvalidPiece('?'))
-        );
-    }
-
-    #[test]
-    fn test_from_fen_invalid_color() {
-        let fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR x KQkq - 0 1";
-        assert_eq!(
-            Position::from_fen(fen),
-            Err(ParseFenError::InvalidColor('x'))
-        );
-    }
-
-    #[test]
-    fn test_from_fen_invalid_castling_rights() {
-        let fen1 = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkx - 0 1";
-        assert_eq!(
-            Position::from_fen(fen1),
-            Err(ParseFenError::InvalidCastlingRights('x'))
-        );
-        let fen2 = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w x - 0 1";
-        assert_eq!(
-            Position::from_fen(fen2),
-            Err(ParseFenError::InvalidCastlingRights('x'))
-        );
-    }
-
-    #[test]
-    fn test_from_fen_starting_position() {
-        let fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-
-        #[rustfmt::skip]
-        let pieces = [
-            p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'),
-            p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'),
-            p('-'), p('R'), p('N'), p('B'), p('Q'), p('K'), p('B'), p('N'), p('R'), p('-'),
-            p('-'), p('P'), p('P'), p('P'), p('P'), p('P'), p('P'), p('P'), p('P'), p('-'),
-            p('-'), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p('-'),
-            p('-'), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p('-'),
-            p('-'), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p('-'),
-            p('-'), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p('-'),
-            p('-'), p('p'), p('p'), p('p'), p('p'), p('p'), p('p'), p('p'), p('p'), p('-'),
-            p('-'), p('r'), p('n'), p('b'), p('q'), p('k'), p('b'), p('n'), p('r'), p('-'),
-            p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'),
-            p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'),
-        ];
         let expected = Position {
-            pieces,
-            side_to_move: Color::White,
-            ..Default::default()
+            pieces: piece_array,
+            side_to_move,
+            en_passant_square,
+            castling_rights,
         };
 
-        assert_eq!(Position::from_fen(fen), Ok(expected));
-    }
-
-    #[test]
-    fn test_from_fen_e4() {
-        let fen = "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1";
-
-        #[rustfmt::skip]
-        let pieces = [
-            p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'),
-            p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'),
-            p('-'), p('R'), p('N'), p('B'), p('Q'), p('K'), p('B'), p('N'), p('R'), p('-'),
-            p('-'), p('P'), p('P'), p('P'), p('P'), p(' '), p('P'), p('P'), p('P'), p('-'),
-            p('-'), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p('-'),
-            p('-'), p(' '), p(' '), p(' '), p(' '), p('P'), p(' '), p(' '), p(' '), p('-'),
-            p('-'), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p('-'),
-            p('-'), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p('-'),
-            p('-'), p('p'), p('p'), p('p'), p('p'), p('p'), p('p'), p('p'), p('p'), p('-'),
-            p('-'), p('r'), p('n'), p('b'), p('q'), p('k'), p('b'), p('n'), p('r'), p('-'),
-            p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'),
-            p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'),
-        ];
-        let expected = Position {
-            pieces,
-            side_to_move: Color::Black,
-            en_passant_square: Some(Square::E3),
-            ..Default::default()
-        };
-
-        assert_eq!(Position::from_fen(fen), Ok(expected));
-    }
-
-    #[test]
-    fn test_from_fen_e4_c5() {
-        let fen = "rnbqkbnr/pp1ppppp/8/2p5/4P3/8/PPPP1PPP/RNBQKBNR w KQkq c6 0 2";
-
-        #[rustfmt::skip]
-        let pieces = [
-            p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'),
-            p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'),
-            p('-'), p('R'), p('N'), p('B'), p('Q'), p('K'), p('B'), p('N'), p('R'), p('-'),
-            p('-'), p('P'), p('P'), p('P'), p('P'), p(' '), p('P'), p('P'), p('P'), p('-'),
-            p('-'), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p('-'),
-            p('-'), p(' '), p(' '), p(' '), p(' '), p('P'), p(' '), p(' '), p(' '), p('-'),
-            p('-'), p(' '), p(' '), p('p'), p(' '), p(' '), p(' '), p(' '), p(' '), p('-'),
-            p('-'), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p('-'),
-            p('-'), p('p'), p('p'), p(' '), p('p'), p('p'), p('p'), p('p'), p('p'), p('-'),
-            p('-'), p('r'), p('n'), p('b'), p('q'), p('k'), p('b'), p('n'), p('r'), p('-'),
-            p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'),
-            p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'),
-        ];
-        let expected = Position {
-            pieces,
-            side_to_move: Color::White,
-            en_passant_square: Some(Square::C6),
-            ..Default::default()
-        };
-
-        assert_eq!(Position::from_fen(fen), Ok(expected));
-    }
-
-    #[test]
-    fn test_from_fen_e4_c5_nf3() {
-        let fen = "rnbqkbnr/pp1ppppp/8/2p5/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2";
-
-        #[rustfmt::skip]
-        let pieces = [
-            p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'),
-            p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'),
-            p('-'), p('R'), p('N'), p('B'), p('Q'), p('K'), p('B'), p(' '), p('R'), p('-'),
-            p('-'), p('P'), p('P'), p('P'), p('P'), p(' '), p('P'), p('P'), p('P'), p('-'),
-            p('-'), p(' '), p(' '), p(' '), p(' '), p(' '), p('N'), p(' '), p(' '), p('-'),
-            p('-'), p(' '), p(' '), p(' '), p(' '), p('P'), p(' '), p(' '), p(' '), p('-'),
-            p('-'), p(' '), p(' '), p('p'), p(' '), p(' '), p(' '), p(' '), p(' '), p('-'),
-            p('-'), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p('-'),
-            p('-'), p('p'), p('p'), p(' '), p('p'), p('p'), p('p'), p('p'), p('p'), p('-'),
-            p('-'), p('r'), p('n'), p('b'), p('q'), p('k'), p('b'), p('n'), p('r'), p('-'),
-            p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'),
-            p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'),
-        ];
-        let expected = Position {
-            pieces,
-            side_to_move: Color::Black,
-            ..Default::default()
-        };
-
-        assert_eq!(Position::from_fen(fen), Ok(expected));
-    }
-
-    #[test]
-    fn test_from_fen_castling_rights() {
-        let fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w Kq - 0 1";
-
-        #[rustfmt::skip]
-        let pieces = [
-            p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'),
-            p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'),
-            p('-'), p('R'), p('N'), p('B'), p('Q'), p('K'), p('B'), p('N'), p('R'), p('-'),
-            p('-'), p('P'), p('P'), p('P'), p('P'), p('P'), p('P'), p('P'), p('P'), p('-'),
-            p('-'), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p('-'),
-            p('-'), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p('-'),
-            p('-'), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p('-'),
-            p('-'), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p('-'),
-            p('-'), p('p'), p('p'), p('p'), p('p'), p('p'), p('p'), p('p'), p('p'), p('-'),
-            p('-'), p('r'), p('n'), p('b'), p('q'), p('k'), p('b'), p('n'), p('r'), p('-'),
-            p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'),
-            p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'),
-        ];
-        let expected = Position {
-            pieces,
-            side_to_move: Color::White,
-            castling_rights: CastlingRights::new(true, false, false, true),
-            ..Default::default()
-        };
-
-        assert_eq!(Position::from_fen(fen), Ok(expected));
-    }
-
-    #[test]
-    fn test_from_fen_no_castling_rights() {
-        let fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w - - 0 1";
-
-        #[rustfmt::skip]
-        let pieces = [
-            p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'),
-            p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'),
-            p('-'), p('R'), p('N'), p('B'), p('Q'), p('K'), p('B'), p('N'), p('R'), p('-'),
-            p('-'), p('P'), p('P'), p('P'), p('P'), p('P'), p('P'), p('P'), p('P'), p('-'),
-            p('-'), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p('-'),
-            p('-'), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p('-'),
-            p('-'), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p('-'),
-            p('-'), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p(' '), p('-'),
-            p('-'), p('p'), p('p'), p('p'), p('p'), p('p'), p('p'), p('p'), p('p'), p('-'),
-            p('-'), p('r'), p('n'), p('b'), p('q'), p('k'), p('b'), p('n'), p('r'), p('-'),
-            p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'),
-            p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'), p('-'),
-        ];
-        let expected = Position {
-            pieces,
-            side_to_move: Color::White,
-            castling_rights: CastlingRights::new(false, false, false, false),
-            ..Default::default()
-        };
-
-        assert_eq!(Position::from_fen(fen), Ok(expected));
+        pretty_assertions::assert_eq!(Position::from_fen(fen).expect("valid position"), expected);
     }
 }

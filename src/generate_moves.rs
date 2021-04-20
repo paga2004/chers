@@ -301,62 +301,23 @@ impl Position {
 
 #[cfg(test)]
 mod tests {
-    use pretty_assertions::assert_eq;
+    use test_case::test_case;
 
     use super::*;
 
-    /// Creates a function to test `Position::new_move`.
-    ///
-    /// Curly braces are necessary for rustfmt to work, which is nice because it can automatically
-    /// wrap long lines.
-    macro_rules! test_position_generate_legal_moves {
-        ({ $($name:ident($fen:expr, $moves:expr $(,)?);)+ }) => {
-            $(
-                #[test]
-                #[allow(non_snake_case)]
-                fn $name() {
-                    let mut expected = $moves;
-                    let pos = Position::from_fen($fen).expect("valid position");
-                    let mut moves : Vec<_> = pos.generate_legal_moves().into_iter()
-                        .map(|m| m.to_string())
-                        .collect();
-                    expected.sort_unstable();
-                    moves.sort_unstable();
+    #[test_case("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", &mut [ "a2a3", "a2a4", "b2b3", "b2b4", "c2c3", "c2c4", "d2d3", "d2d4", "e2e3", "e2e4", "f2f3", "f2f4", "g2g3", "g2g4", "h2h3", "h2h4", "b1a3", "b1c3", "g1f3", "g1h3" ]; "starting position")]
+    #[test_case("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - ", &mut [ "a2a3", "b2b3", "g2g3", "d5d6", "a2a4", "g2g4", "g2h3", "d5e6", "c3b1", "c3d1", "c3a4", "c3b5", "e5d3", "e5c4", "e5g4", "e5c6", "e5g6", "e5d7", "e5f7", "d2c1", "d2e3", "d2f4", "d2g5", "d2h6", "e2d1", "e2f1", "e2d3", "e2c4", "e2b5", "e2a6", "a1b1", "a1c1", "a1d1", "h1f1", "h1g1", "f3d3", "f3e3", "f3g3", "f3h3", "f3f4", "f3g4", "f3f5", "f3h5", "f3f6", "e1d1", "e1f1", "e1g1", "e1c1", ]; "kiwipete")]
+    #[test_case("rnbqkbnr/pppp2pp/8/3Ppp2/8/8/PPP1PPPP/RNBQKBNR w KQkq e6 0 3", &mut [ "a2a3", "b2b3", "c2c3", "e2e3", "f2f3", "g2g3", "h2h3", "d5d6", "a2a4", "b2b4", "c2c4", "e2e4", "f2f4", "g2g4", "h2h4", "d5e6", "b1d2", "b1a3", "b1c3", "g1f3", "g1h3", "c1d2", "c1e3", "c1f4", "c1g5", "c1h6", "d1d2", "d1d3", "d1d4", "e1d2", ]; "en passant")] // All other types of move are covered in kiwipete but there is no en passant move in that positon.
+    fn test_position_generate_legal_moves(fen: &str, expected_moves: &mut [&str]) {
+        let pos = Position::from_fen(fen).expect("valid position");
+        let mut moves: Vec<_> = pos
+            .generate_legal_moves()
+            .into_iter()
+            .map(|m| m.to_string())
+            .collect();
+        expected_moves.sort_unstable();
+        moves.sort_unstable();
 
-                    assert_eq!(moves, expected);
-                }
-            )*
-        };
-        () => {};
+        pretty_assertions::assert_eq!(moves, expected_moves);
     }
-
-    test_position_generate_legal_moves!({
-        test_position_generate_legal_moves_starting_position(
-            "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
-            [
-                "a2a3", "a2a4", "b2b3", "b2b4", "c2c3", "c2c4", "d2d3", "d2d4", "e2e3", "e2e4",
-                "f2f3", "f2f4", "g2g3", "g2g4", "h2h3", "h2h4", "b1a3", "b1c3", "g1f3", "g1h3",
-            ],
-        );
-
-        test_position_generate_legal_moves_en_passant(
-            "rnbqkbnr/pppp2pp/8/3Ppp2/8/8/PPP1PPPP/RNBQKBNR w KQkq e6 0 3",
-            [
-                "a2a3", "b2b3", "c2c3", "e2e3", "f2f3", "g2g3", "h2h3", "d5d6", "a2a4", "b2b4",
-                "c2c4", "e2e4", "f2f4", "g2g4", "h2h4", "d5e6", "b1d2", "b1a3", "b1c3", "g1f3",
-                "g1h3", "c1d2", "c1e3", "c1f4", "c1g5", "c1h6", "d1d2", "d1d3", "d1d4", "e1d2",
-            ],
-        );
-
-        test_position_generate_legal_moves_kiwipete(
-            "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - ",
-            [
-                "a2a3", "b2b3", "g2g3", "d5d6", "a2a4", "g2g4", "g2h3", "d5e6", "c3b1", "c3d1",
-                "c3a4", "c3b5", "e5d3", "e5c4", "e5g4", "e5c6", "e5g6", "e5d7", "e5f7", "d2c1",
-                "d2e3", "d2f4", "d2g5", "d2h6", "e2d1", "e2f1", "e2d3", "e2c4", "e2b5", "e2a6",
-                "a1b1", "a1c1", "a1d1", "h1f1", "h1g1", "f3d3", "f3e3", "f3g3", "f3h3", "f3f4",
-                "f3g4", "f3f5", "f3h5", "f3f6", "e1d1", "e1f1", "e1g1", "e1c1",
-            ],
-        );
-    });
 }

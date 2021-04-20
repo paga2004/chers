@@ -219,119 +219,28 @@ mod tests {
 
     use super::*;
 
-    /// Creates a function to test `Position::make_move`.
-    ///
-    /// Curly braces are necessary for rustfmt to work, which is nice because it can automatically
-    /// wrap long lines.
-    macro_rules! test_position_make_move {
-        ({ $($name:ident($position:expr, $move:expr, $expected:expr $(,)?);)+ }) => {
-            $(
-                #[test]
-                fn $name() {
-                    let mut pos = Position::from_fen($position).unwrap();
-                    let m = Move::from_coordinate_notation($move).unwrap();
-                    let expected = Position::from_fen($expected).unwrap();
+    use test_case::test_case;
 
-                    pos.make_move(&m);
-                    assert_eq!(pos, expected);
-                }
-            )*
-        };
-        () => {};
-    }
+    #[test_case( "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "e2e4", "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1" ; "e2e4")]
+    #[test_case( "rnbqkbnr/pppppppp/8/8/4p3/8/pppp1ppp/rnbqkbnr b kqkq e3 0 1", "c7c5", "rnbqkbnr/pp1ppppp/8/2p5/4p3/8/pppp1ppp/rnbqkbnr w kqkq c6 0 2" ; "c7c5")]
+    #[test_case( "rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2", "e4d5", "rnbqkbnr/ppp1pppp/8/3P4/8/8/PPPP1PPP/RNBQKBNR b KQkq - 0 2" ; "capture")]
+    #[test_case( "rnbqkbnr/1pp1pppp/p7/3pP3/8/8/PPPP1PPP/RNBQKBNR w KQkq d6 0 3", "e5d6", "rnbqkbnr/1pp1pppp/p2P4/8/8/8/PPPP1PPP/RNBQKBNR b KQkq - 0 3" ; "en passant white")]
+    #[test_case( "r1bqkb1r/pppp1ppp/2n2n2/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4", "e1g1", "r1bqkb1r/pppp1ppp/2n2n2/1B2p3/4P3/5N2/PPPP1PPP/RNBQ1RK1 b kq - 5 4" ; "kingside castling white")]
+    #[test_case( "r2qkb1r/ppp1pppp/2n5/3p1b2/3PnB2/2NQP3/PPP2PPP/R3KBNR w KQkq - 5 6", "e1c1", "r2qkb1r/ppp1pppp/2n5/3p1b2/3PnB2/2NQP3/PPP2PPP/2KR1BNR b kq - 6 6" ; "queenside castling white")]
+    #[test_case( "rnbqk2r/pppp1ppp/5n2/4N3/1b2P3/2N5/PPPP1PPP/R1BQKB1R b KQkq - 0 4", "e8g8", "rnbq1rk1/pppp1ppp/5n2/4N3/1b2P3/2N5/PPPP1PPP/R1BQKB1R w KQ - 1 5" ; "kingside castling black")]
+    #[test_case( "r3kbnr/pppqpppp/2n1b3/3pN3/2PP4/2N5/PP2PPPP/R1BQKB1R b KQkq - 6 5", "e8c8", "2kr1bnr/pppqpppp/2n1b3/3pN3/2PP4/2N5/PP2PPPP/R1BQKB1R w KQ - 7 6" ; "queenside castling black")]
+    #[test_case( "8/8/2k5/4K3/8/8/4p3/8 b - - 0 90", "e2e1Q", "8/8/2k5/4K3/8/8/8/4q3 w - - 0 91" ; "promotion black")]
+    #[test_case( "5b2/6P1/2k5/4K3/3p4/3B4/8/8 w - - 3 92", "g7f8Q", "5Q2/8/2k5/4K3/3p4/3B4/8/8 b - - 0 92" ; "promotion with capture")]
+    #[test_case( "8/5P1P/2k5/4b1P1/3p4/3B1K2/8/8 w - - 1 85", "f7f8N", "5N2/7P/2k5/4b1P1/3p4/3B1K2/8/8 b - - 0 85" ; "promtotion to knight")]
+    #[test_case( "8/5P1P/2k5/4b1P1/3p4/3B1K2/8/8 w - - 1 85", "f7f8B", "5B2/7P/2k5/4b1P1/3p4/3B1K2/8/8 b - - 0 85" ; "promotion to bishop")]
+    #[test_case( "8/5P1P/2k5/4b1P1/3p4/3B1K2/8/8 w - - 1 85", "f7f8R", "5R2/7P/2k5/4b1P1/3p4/3B1K2/8/8 b - - 0 85" ; "promotion to rook")]
+    fn test_position_make_move(pos: &str, m: &str, expected: &str) {
+        let mut pos = Position::from_fen(pos).expect("valid position");
+        let m = Move::from_coordinate_notation(m).expect("valid move");
+        let expected = Position::from_fen(expected).expect("valid position");
 
-    test_position_make_move!({
-        test_position_make_move_e2e4(
-            "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
-            "e2e4",
-            "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1",
-        );
-        test_position_make_move_c7c5(
-            "rnbqkbnr/pppppppp/8/8/4p3/8/pppp1ppp/rnbqkbnr b kqkq e3 0 1",
-            "c7c5",
-            "rnbqkbnr/pp1ppppp/8/2p5/4p3/8/pppp1ppp/rnbqkbnr w kqkq c6 0 2",
-        );
-
-        // capture
-        test_position_make_move_capture(
-            "rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2",
-            "e4d5",
-            "rnbqkbnr/ppp1pppp/8/3P4/8/8/PPPP1PPP/RNBQKBNR b KQkq - 0 2",
-        );
-        test_positon_make_move_en_passant_white(
-            "rnbqkbnr/1pp1pppp/p7/3pP3/8/8/PPPP1PPP/RNBQKBNR w KQkq d6 0 3",
-            "e5d6",
-            "rnbqkbnr/1pp1pppp/p2P4/8/8/8/PPPP1PPP/RNBQKBNR b KQkq - 0 3",
-        );
-        test_positon_make_move_en_passant_black(
-            "rnbqkbnr/pppp1ppp/8/8/P3pP2/8/1PPPP1PP/RNBQKBNR b KQkq f3 0 3",
-            "e4f3",
-            "rnbqkbnr/pppp1ppp/8/8/P7/5p2/1PPPP1PP/RNBQKBNR w KQkq - 0 4",
-        );
-
-        // castling
-        test_positon_make_move_kingside_castling_white(
-            "r1bqkb1r/pppp1ppp/2n2n2/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4",
-            "e1g1",
-            "r1bqkb1r/pppp1ppp/2n2n2/1B2p3/4P3/5N2/PPPP1PPP/RNBQ1RK1 b kq - 5 4",
-        );
-        test_positon_make_move_queenside_castling_white(
-            "r2qkb1r/ppp1pppp/2n5/3p1b2/3PnB2/2NQP3/PPP2PPP/R3KBNR w KQkq - 5 6",
-            "e1c1",
-            "r2qkb1r/ppp1pppp/2n5/3p1b2/3PnB2/2NQP3/PPP2PPP/2KR1BNR b kq - 6 6",
-        );
-        test_positon_make_move_kingside_castling_black(
-            "rnbqk2r/pppp1ppp/5n2/4N3/1b2P3/2N5/PPPP1PPP/R1BQKB1R b KQkq - 0 4",
-            "e8g8",
-            "rnbq1rk1/pppp1ppp/5n2/4N3/1b2P3/2N5/PPPP1PPP/R1BQKB1R w KQ - 1 5",
-        );
-        test_positon_make_move_queenside_castling_black(
-            "r3kbnr/pppqpppp/2n1b3/3pN3/2PP4/2N5/PP2PPPP/R1BQKB1R b KQkq - 6 5",
-            "e8c8",
-            "2kr1bnr/pppqpppp/2n1b3/3pN3/2PP4/2N5/PP2PPPP/R1BQKB1R w KQ - 7 6",
-        );
-
-        // promotion
-        test_position_make_move_promotion_white(
-            "8/5P1P/2k5/4b1P1/3p4/3B1K2/8/8 w - - 1 85",
-            "f7f8Q",
-            "5Q2/7P/2k5/4b1P1/3p4/3B1K2/8/8 b - - 0 85",
-        );
-        test_position_make_move_promotion_black(
-            "8/8/2k5/4K3/8/8/4p3/8 b - - 0 90",
-            "e2e1Q",
-            "8/8/2k5/4K3/8/8/8/4q3 w - - 0 91",
-        );
-        test_position_make_move_promotion_capture(
-            "5b2/6P1/2k5/4K3/3p4/3B4/8/8 w - - 3 92",
-            "g7f8Q",
-            "5Q2/8/2k5/4K3/3p4/3B4/8/8 b - - 0 92",
-        );
-        test_position_make_move_promotion_knight(
-            "8/5P1P/2k5/4b1P1/3p4/3B1K2/8/8 w - - 1 85",
-            "f7f8N",
-            "5N2/7P/2k5/4b1P1/3p4/3B1K2/8/8 b - - 0 85",
-        );
-        test_position_make_move_promotion_bishop(
-            "8/5P1P/2k5/4b1P1/3p4/3B1K2/8/8 w - - 1 85",
-            "f7f8B",
-            "5B2/7P/2k5/4b1P1/3p4/3B1K2/8/8 b - - 0 85",
-        );
-        test_position_make_move_promotion_rook(
-            "8/5P1P/2k5/4b1P1/3p4/3B1K2/8/8 w - - 1 85",
-            "f7f8R",
-            "5R2/7P/2k5/4b1P1/3p4/3B1K2/8/8 b - - 0 85",
-        );
-    });
-
-    #[test]
-    fn test_position_make_move_promotion() {
-        let mut position = Position::from_fen("4k3/P7/8/8/8/8/8/4K3 w - - 0 1").unwrap();
-        let m = Move::from_coordinate_notation("a7a8Q").unwrap();
-        let expected = Position::from_fen("Q3k3/8/8/8/8/8/8/4K3 b - - 0 1").unwrap();
-
-        position.make_move(&m);
-        assert_eq!(position, expected);
+        pos.make_move(&m);
+        pretty_assertions::assert_eq!(pos, expected);
     }
 
     #[test]

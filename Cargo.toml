@@ -19,3 +19,4 @@ thiserror = "1.0.24"
 
 [dev-dependencies]
 pretty_assertions = "0.7.2"
+test-case = "1.1.0"

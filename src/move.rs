@@ -61,7 +61,16 @@ impl Move {
         let promotion_piece = s
             .chars()
             .nth(4)
-            .map(|c| PieceType::from_char(c).ok_or(ParseMoveError::InvalidPromotionPiece(c)))
+            .map(|c| {
+                PieceType::from_char(c)
+                    .ok_or(ParseMoveError::InvalidPromotionPiece(c))
+                    .and_then(|p| match p {
+                        PieceType::Pawn | PieceType::King => {
+                            Err(ParseMoveError::InvalidPromotionPiece(c))
+                        }
+                        other => Ok(other),
+                    })
+            })
             .map_or(Ok(None), |r| r.map(Some))?;
 
         Ok(Self {
@@ -84,115 +93,71 @@ impl fmt::Display for Move {
 
 #[cfg(test)]
 mod tests {
-    use pretty_assertions::assert_eq;
+    use test_case::test_case;
 
     use super::*;
     use crate::error::ParseSquareError;
+    use PieceType::*;
+    use Square::*;
 
-    #[test]
-    fn from_coordinate_notation_too_short() {
-        assert_eq!(
-            Move::from_coordinate_notation(""),
-            Err(ParseMoveError::TooShort)
-        );
-        assert_eq!(
-            Move::from_coordinate_notation("e"),
-            Err(ParseMoveError::TooShort)
-        );
-        assert_eq!(
-            Move::from_coordinate_notation("e2"),
-            Err(ParseMoveError::TooShort)
-        );
-        assert_eq!(
-            Move::from_coordinate_notation("e2e"),
+    #[test_case(""; "empty string")] // error without the explicit name
+    #[test_case("e")]
+    #[test_case("e4")]
+    #[test_case("e4e")]
+    fn from_coordinate_notation_too_short(m: &str) {
+        pretty_assertions::assert_eq!(
+            Move::from_coordinate_notation(m),
             Err(ParseMoveError::TooShort)
         );
     }
 
-    #[test]
-    fn from_coordinate_notation_invalid_square() {
-        assert_eq!(
-            Move::from_coordinate_notation("x1e2"),
-            Err(ParseMoveError::InvalidSquare(
-                ParseSquareError::InvalidFile('x')
-            ))
-        );
-        assert_eq!(
-            Move::from_coordinate_notation("e1x2"),
+    #[test_case("x1e2")]
+    #[test_case("e1x2")]
+    fn from_coordinate_notation_invalid_square(m: &str) {
+        pretty_assertions::assert_eq!(
+            Move::from_coordinate_notation(m),
             Err(ParseMoveError::InvalidSquare(
                 ParseSquareError::InvalidFile('x')
             ))
         );
     }
 
-    #[test]
-    fn from_coordinate_notation_invalid_rank() {
-        assert_eq!(
-            Move::from_coordinate_notation("e2e9"),
+    #[test_case("e0e4", '0')]
+    #[test_case("e4e0", '0')]
+    #[test_case("e9e4", '9')]
+    #[test_case("e4e9", '9')]
+    fn from_coordinate_notation_invalid_rank(m: &str, c: char) {
+        pretty_assertions::assert_eq!(
+            Move::from_coordinate_notation(m),
             Err(ParseMoveError::InvalidSquare(
-                ParseSquareError::InvalidRank('9')
-            ))
-        );
-        assert_eq!(
-            Move::from_coordinate_notation("e0e2"),
-            Err(ParseMoveError::InvalidSquare(
-                ParseSquareError::InvalidRank('0')
+                ParseSquareError::InvalidRank(c)
             ))
         );
     }
 
-    #[test]
-    fn from_coordinate_notation_invalid_promotion_piece() {
-        assert_eq!(
-            Move::from_coordinate_notation("f7f8X"),
-            Err(ParseMoveError::InvalidPromotionPiece('X'))
+    #[test_case("e7e8x", 'x')]
+    #[test_case("e7e8p", 'p')] // promotion to pawn is impossible
+    #[test_case("e7e8k", 'k')] // promotion to king is impossible
+    fn from_coordinate_notation_invalid_promotion_piece(m: &str, c: char) {
+        pretty_assertions::assert_eq!(
+            Move::from_coordinate_notation(m),
+            Err(ParseMoveError::InvalidPromotionPiece(c))
         );
     }
 
-    /// Creates a function to test `Move::from_coordinate_notation`.
-    ///
-    /// Curly braces are necessary for rustfmt to work, which is nice because it can automatically
-    /// wrap long lines.
-    macro_rules! test_move_from_coordinate_notation {
-        ({ $($name:ident($move:expr, $from:expr, $to:expr, $promotion_piece:expr $(,)?);)+ }) => {
-            $(
-                #[test]
-                #[allow(non_snake_case)]
-                fn $name() {
-                    let expected = Move::new($from, $to, $promotion_piece);
-                    assert_eq!(Move::from_coordinate_notation($move), Ok(expected));
-                }
-            )*
-        };
-        () => {};
+    #[test_case("e2e4", E2, E4, None)]
+    #[test_case("e4g5", E4, G5, None)]
+    #[test_case("f7f8q", F7, F8, Some(Queen))]
+    #[test_case("f7f8r", F7, F8, Some(Rook))]
+    #[test_case("f7f8b", F7, F8, Some(Bishop))]
+    #[test_case("f7f8n", F7, F8, Some(Knight))]
+    fn test_move_from_coordinate_notation(
+        m: &str,
+        from: Square,
+        to: Square,
+        promotion_piece: Option<PieceType>,
+    ) {
+        let expected = Move::new(from, to, promotion_piece);
+        pretty_assertions::assert_eq!(Move::from_coordinate_notation(m), Ok(expected));
     }
-
-    test_move_from_coordinate_notation!({
-        test_move_from_coordinate_notation_e2e4("e2e4", Square::E2, Square::E4, None);
-        test_move_from_coordinate_notation_e4g5("e4g5", Square::E4, Square::G5, None);
-        test_move_from_coordinate_notation_f7f8Q(
-            "f7f8Q",
-            Square::F7,
-            Square::F8,
-            Some(PieceType::Queen),
-        );
-        test_move_from_coordinate_notation_f7f8R(
-            "f7f8R",
-            Square::F7,
-            Square::F8,
-            Some(PieceType::Rook),
-        );
-        test_move_from_coordinate_notation_f7f8B(
-            "f7f8B",
-            Square::F7,
-            Square::F8,
-            Some(PieceType::Bishop),
-        );
-        test_move_from_coordinate_notation_f7f8N(
-            "f7f8N",
-            Square::F7,
-            Square::F8,
-            Some(PieceType::Knight),
-        );
-    });
 }
