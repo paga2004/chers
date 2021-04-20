@@ -19,6 +19,7 @@ mod file;
 mod generate_moves;
 mod r#move;
 mod move_list;
+mod perft;
 mod piece;
 mod position;
 mod rank;
@@ -39,3 +40,5 @@ pub use r#move::Move;
 
 pub use castling_rights::CastlingRights;
 pub use position::Position;
+
+pub use perft::perft;

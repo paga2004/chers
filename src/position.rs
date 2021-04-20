@@ -63,7 +63,8 @@ impl Position {
             }
 
             // castling rights
-            match m.from {
+            // TODO: Use a castling mask for this
+            let mut remove_castling_rights = |sq| match sq {
                 Square::A1 => {
                     self.castling_rights.white_queen_side = false;
                 }
@@ -87,9 +88,12 @@ impl Position {
                 }
 
                 _ => {}
-            }
+            };
+            remove_castling_rights(m.from);
+            remove_castling_rights(m.to);
 
             // white castling
+            // NOTE: might be faster to store this in the move
             if m.from == Square::E1 && p.piece_type == PieceType::King && p.color == Color::White {
                 // queenside
                 if m.to == Square::C1 {
@@ -101,7 +105,7 @@ impl Position {
                 }
                 // kingside
                 if m.to == Square::G1 {
-                    self.pieces[Square::F1] = self.pieces[Square::A1];
+                    self.pieces[Square::F1] = self.pieces[Square::H1];
                     self.pieces[Square::G1] = BoardState::Piece(p);
                     self.pieces[Square::E1] = BoardState::Empty;
                     self.pieces[Square::H1] = BoardState::Empty;
@@ -120,7 +124,7 @@ impl Position {
                 }
                 // kingside
                 if m.to == Square::G8 {
-                    self.pieces[Square::F8] = self.pieces[Square::A8];
+                    self.pieces[Square::F8] = self.pieces[Square::H8];
                     self.pieces[Square::G8] = BoardState::Piece(p);
                     self.pieces[Square::E8] = BoardState::Empty;
                     self.pieces[Square::H8] = BoardState::Empty;
@@ -138,7 +142,6 @@ impl Position {
                 } else {
                     Square::new(m.to.file(), m.to.rank() + 1)
                 };
-                dbg!(capture_field);
                 self.pieces[capture_field] = BoardState::Empty;
             }
 
@@ -221,19 +224,22 @@ mod tests {
 
     use test_case::test_case;
 
-    #[test_case( "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "e2e4", "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1" ; "e2e4")]
-    #[test_case( "rnbqkbnr/pppppppp/8/8/4p3/8/pppp1ppp/rnbqkbnr b kqkq e3 0 1", "c7c5", "rnbqkbnr/pp1ppppp/8/2p5/4p3/8/pppp1ppp/rnbqkbnr w kqkq c6 0 2" ; "c7c5")]
-    #[test_case( "rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2", "e4d5", "rnbqkbnr/ppp1pppp/8/3P4/8/8/PPPP1PPP/RNBQKBNR b KQkq - 0 2" ; "capture")]
-    #[test_case( "rnbqkbnr/1pp1pppp/p7/3pP3/8/8/PPPP1PPP/RNBQKBNR w KQkq d6 0 3", "e5d6", "rnbqkbnr/1pp1pppp/p2P4/8/8/8/PPPP1PPP/RNBQKBNR b KQkq - 0 3" ; "en passant white")]
-    #[test_case( "r1bqkb1r/pppp1ppp/2n2n2/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4", "e1g1", "r1bqkb1r/pppp1ppp/2n2n2/1B2p3/4P3/5N2/PPPP1PPP/RNBQ1RK1 b kq - 5 4" ; "kingside castling white")]
-    #[test_case( "r2qkb1r/ppp1pppp/2n5/3p1b2/3PnB2/2NQP3/PPP2PPP/R3KBNR w KQkq - 5 6", "e1c1", "r2qkb1r/ppp1pppp/2n5/3p1b2/3PnB2/2NQP3/PPP2PPP/2KR1BNR b kq - 6 6" ; "queenside castling white")]
-    #[test_case( "rnbqk2r/pppp1ppp/5n2/4N3/1b2P3/2N5/PPPP1PPP/R1BQKB1R b KQkq - 0 4", "e8g8", "rnbq1rk1/pppp1ppp/5n2/4N3/1b2P3/2N5/PPPP1PPP/R1BQKB1R w KQ - 1 5" ; "kingside castling black")]
-    #[test_case( "r3kbnr/pppqpppp/2n1b3/3pN3/2PP4/2N5/PP2PPPP/R1BQKB1R b KQkq - 6 5", "e8c8", "2kr1bnr/pppqpppp/2n1b3/3pN3/2PP4/2N5/PP2PPPP/R1BQKB1R w KQ - 7 6" ; "queenside castling black")]
-    #[test_case( "8/8/2k5/4K3/8/8/4p3/8 b - - 0 90", "e2e1Q", "8/8/2k5/4K3/8/8/8/4q3 w - - 0 91" ; "promotion black")]
-    #[test_case( "5b2/6P1/2k5/4K3/3p4/3B4/8/8 w - - 3 92", "g7f8Q", "5Q2/8/2k5/4K3/3p4/3B4/8/8 b - - 0 92" ; "promotion with capture")]
-    #[test_case( "8/5P1P/2k5/4b1P1/3p4/3B1K2/8/8 w - - 1 85", "f7f8N", "5N2/7P/2k5/4b1P1/3p4/3B1K2/8/8 b - - 0 85" ; "promtotion to knight")]
-    #[test_case( "8/5P1P/2k5/4b1P1/3p4/3B1K2/8/8 w - - 1 85", "f7f8B", "5B2/7P/2k5/4b1P1/3p4/3B1K2/8/8 b - - 0 85" ; "promotion to bishop")]
-    #[test_case( "8/5P1P/2k5/4b1P1/3p4/3B1K2/8/8 w - - 1 85", "f7f8R", "5R2/7P/2k5/4b1P1/3p4/3B1K2/8/8 b - - 0 85" ; "promotion to rook")]
+    #[test_case( "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "e2e4", "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1"; "e2e4")]
+    #[test_case( "rnbqkbnr/pppppppp/8/8/4p3/8/pppp1ppp/rnbqkbnr b kqkq e3 0 1", "c7c5", "rnbqkbnr/pp1ppppp/8/2p5/4p3/8/pppp1ppp/rnbqkbnr w kqkq c6 0 2"; "c7c5")]
+    #[test_case( "rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2", "e4d5", "rnbqkbnr/ppp1pppp/8/3P4/8/8/PPPP1PPP/RNBQKBNR b KQkq - 0 2"; "capture")]
+    #[test_case( "rnbqkbnr/1pp1pppp/p7/3pP3/8/8/PPPP1PPP/RNBQKBNR w KQkq d6 0 3", "e5d6", "rnbqkbnr/1pp1pppp/p2P4/8/8/8/PPPP1PPP/RNBQKBNR b KQkq - 0 3"; "en passant white")]
+    #[test_case( "r1bqkb1r/pppp1ppp/2n2n2/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4", "e1g1", "r1bqkb1r/pppp1ppp/2n2n2/1B2p3/4P3/5N2/PPPP1PPP/RNBQ1RK1 b kq - 5 4"; "kingside castling white")]
+    #[test_case( "r2qkb1r/ppp1pppp/2n5/3p1b2/3PnB2/2NQP3/PPP2PPP/R3KBNR w KQkq - 5 6", "e1c1", "r2qkb1r/ppp1pppp/2n5/3p1b2/3PnB2/2NQP3/PPP2PPP/2KR1BNR b kq - 6 6"; "queenside castling white")]
+    #[test_case( "rnbqk2r/pppp1ppp/5n2/4N3/1b2P3/2N5/PPPP1PPP/R1BQKB1R b KQkq - 0 4", "e8g8", "rnbq1rk1/pppp1ppp/5n2/4N3/1b2P3/2N5/PPPP1PPP/R1BQKB1R w KQ - 1 5"; "kingside castling black")]
+    #[test_case( "r3kbnr/pppqpppp/2n1b3/3pN3/2PP4/2N5/PP2PPPP/R1BQKB1R b KQkq - 6 5", "e8c8", "2kr1bnr/pppqpppp/2n1b3/3pN3/2PP4/2N5/PP2PPPP/R1BQKB1R w KQ - 7 6"; "queenside castling black")]
+    #[test_case( "8/8/2k5/4K3/8/8/4p3/8 b - - 0 90", "e2e1Q", "8/8/2k5/4K3/8/8/8/4q3 w - - 0 91"; "promotion black")]
+    #[test_case( "5b2/6P1/2k5/4K3/3p4/3B4/8/8 w - - 3 92", "g7f8Q", "5Q2/8/2k5/4K3/3p4/3B4/8/8 b - - 0 92"; "promotion with capture")]
+    #[test_case( "8/5P1P/2k5/4b1P1/3p4/3B1K2/8/8 w - - 1 85", "f7f8N", "5N2/7P/2k5/4b1P1/3p4/3B1K2/8/8 b - - 0 85"; "promtotion to knight")]
+    #[test_case( "8/5P1P/2k5/4b1P1/3p4/3B1K2/8/8 w - - 1 85", "f7f8B", "5B2/7P/2k5/4b1P1/3p4/3B1K2/8/8 b - - 0 85"; "promotion to bishop")]
+    #[test_case( "8/5P1P/2k5/4b1P1/3p4/3B1K2/8/8 w - - 1 85", "f7f8R", "5R2/7P/2k5/4b1P1/3p4/3B1K2/8/8 b - - 0 85"; "promotion to rook")]
+    // There was a bug in this position on commit 31459f2b8cee5d4ab8fd1d3152d1ca432b7df125.
+    #[test_case( "r3k2r/p1ppqNb1/1n2pnp1/1b1P4/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 1 2", "f7h8", "r3k2N/p1ppq1b1/1n2pnp1/1b1P4/1p2P3/2N2Q1p/PPPBBPPP/R3K2R b KQq - 0 2"; "bug 2.4")]
+    #[test_case( "r3k2r/2ppqNb1/1n2pnp1/pb1P4/1p2P3/2N2Q1p/PPPBBPPP/1R2K2R w Kkq - 0 3", "e1g1", "r3k2r/2ppqNb1/1n2pnp1/pb1P4/1p2P3/2N2Q1p/PPPBBPPP/1R3RK1 b kq - 1 3"; "bug 3.3")]
     fn test_position_make_move(pos: &str, m: &str, expected: &str) {
         let mut pos = Position::from_fen(pos).expect("valid position");
         let m = Move::from_coordinate_notation(m).expect("valid move");

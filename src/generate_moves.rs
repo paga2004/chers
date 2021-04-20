@@ -238,7 +238,7 @@ impl Position {
                     // NOTE: Might be faster to check first if all squares are empty since that is
                     // just a lookup.
 
-                    if self.is_empty_and_not_attacked(B1)
+                    if self.pieces[B1] == BoardState::Empty
                         && self.is_empty_and_not_attacked(C1)
                         && self.is_empty_and_not_attacked(D1)
                         && !self.is_check()
@@ -248,7 +248,7 @@ impl Position {
                 }
             }
             Color::Black => {
-                if self.castling_rights.white_king_side {
+                if self.castling_rights.black_king_side {
                     // NOTE: Might be faster to check first if both squares are empty since that is
                     // just a lookup.
                     if self.is_empty_and_not_attacked(F8)
@@ -258,11 +258,11 @@ impl Position {
                         self.add_quiet_move(moves, Move::new(E8, G8, None));
                     }
                 }
-                if self.castling_rights.white_queen_side {
+                if self.castling_rights.black_queen_side {
                     // NOTE: Might be faster to check first if all squares are empty since that is
                     // just a lookup.
 
-                    if self.is_empty_and_not_attacked(B8)
+                    if self.pieces[B8] == BoardState::Empty
                         && self.is_empty_and_not_attacked(C8)
                         && self.is_empty_and_not_attacked(D8)
                         && !self.is_check()
@@ -305,9 +305,17 @@ mod tests {
 
     use super::*;
 
-    #[test_case("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", &mut [ "a2a3", "a2a4", "b2b3", "b2b4", "c2c3", "c2c4", "d2d3", "d2d4", "e2e3", "e2e4", "f2f3", "f2f4", "g2g3", "g2g4", "h2h3", "h2h4", "b1a3", "b1c3", "g1f3", "g1h3" ]; "starting position")]
-    #[test_case("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - ", &mut [ "a2a3", "b2b3", "g2g3", "d5d6", "a2a4", "g2g4", "g2h3", "d5e6", "c3b1", "c3d1", "c3a4", "c3b5", "e5d3", "e5c4", "e5g4", "e5c6", "e5g6", "e5d7", "e5f7", "d2c1", "d2e3", "d2f4", "d2g5", "d2h6", "e2d1", "e2f1", "e2d3", "e2c4", "e2b5", "e2a6", "a1b1", "a1c1", "a1d1", "h1f1", "h1g1", "f3d3", "f3e3", "f3g3", "f3h3", "f3f4", "f3g4", "f3f5", "f3h5", "f3f6", "e1d1", "e1f1", "e1g1", "e1c1", ]; "kiwipete")]
-    #[test_case("rnbqkbnr/pppp2pp/8/3Ppp2/8/8/PPP1PPPP/RNBQKBNR w KQkq e6 0 3", &mut [ "a2a3", "b2b3", "c2c3", "e2e3", "f2f3", "g2g3", "h2h3", "d5d6", "a2a4", "b2b4", "c2c4", "e2e4", "f2f4", "g2g4", "h2h4", "d5e6", "b1d2", "b1a3", "b1c3", "g1f3", "g1h3", "c1d2", "c1e3", "c1f4", "c1g5", "c1h6", "d1d2", "d1d3", "d1d4", "e1d2", ]; "en passant")] // All other types of move are covered in kiwipete but there is no en passant move in that positon.
+    #[test_case("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", &mut [ "a2a3", "a2a4", "b2b3", "b2b4", "c2c3", "c2c4", "d2d3", "d2d4", "e2e3", "e2e4", "f2f3", "f2f4", "g2g3", "g2g4", "h2h3", "h2h4", "b1a3", "b1c3", "g1f3", "g1h3"]; "starting position")]
+    #[test_case("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - ", &mut [ "a2a3", "b2b3", "g2g3", "d5d6", "a2a4", "g2g4", "g2h3", "d5e6", "c3b1", "c3d1", "c3a4", "c3b5", "e5d3", "e5c4", "e5g4", "e5c6", "e5g6", "e5d7", "e5f7", "d2c1", "d2e3", "d2f4", "d2g5", "d2h6", "e2d1", "e2f1", "e2d3", "e2c4", "e2b5", "e2a6", "a1b1", "a1c1", "a1d1", "h1f1", "h1g1", "f3d3", "f3e3", "f3g3", "f3h3", "f3f4", "f3g4", "f3f5", "f3h5", "f3f6", "e1d1", "e1f1", "e1g1", "e1c1"]; "kiwipete")]
+    // En passant move is not covered in kiwipete.
+    #[test_case("rnbqkbnr/pppp2pp/8/3Ppp2/8/8/PPP1PPPP/RNBQKBNR w KQkq e6 0 3", &mut [ "a2a3", "b2b3", "c2c3", "e2e3", "f2f3", "g2g3", "h2h3", "d5d6", "a2a4", "b2b4", "c2c4", "e2e4", "f2f4", "g2g4", "h2h4", "d5e6", "b1d2", "b1a3", "b1c3", "g1f3", "g1h3", "c1d2", "c1e3", "c1f4", "c1g5", "c1h6", "d1d2", "d1d3", "d1d4", "e1d2", ]; "en passant")]
+    // There was a bug in this position on commit 31459f2b8cee5d4ab8fd1d3152d1ca432b7df125.
+    #[test_case("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/1R2K2R b Kkq - 1 1", &mut ["b4b3", "g6g5", "c7c6", "d7d6", "c7c5", "h3g2", "e6d5", "b4c3", "b6a4", "b6c4", "b6d5", "b6c8", "f6e4", "f6g4", "f6d5", "f6h5", "f6h7", "f6g8", "a6e2", "a6d3", "a6c4", "a6b5", "a6b7", "a6c8", "g7h6", "g7f8", "a8b8", "a8c8", "a8d8", "h8h4", "h8h5", "h8h6", "h8h7", "h8f8", "h8g8", "e7c5", "e7d6", "e7d8", "e7f8", "e8d8", "e8f8", "e8g8", "e8c8"]; "bug 1")]
+    // There was a bug in these positions on commit 31459f2b8cee5d4ab8fd1d3152d1ca432b7df125.
+    #[test_case("r3k2r/p1pNqpb1/bn2pnp1/3P4/1p2P3/2N2Q1p/PPPBBPPP/R3K2R b KQkq - 0 1", &mut ["b4b3", "e6e5", "g6g5", "c7c6", "c7c5", "h3g2", "e6d5", "b4c3", "b6a4", "b6c4", "b6d5", "b6d7", "b6c8", "f6e4", "f6g4", "f6d5", "f6h5", "f6d7", "f6h7", "f6g8", "a6e2", "a6d3", "a6c4", "a6b5", "a6b7", "a6c8", "g7h6", "g7f8", "a8b8", "a8c8", "a8d8", "h8h4", "h8h5", "h8h6", "h8h7", "h8f8", "h8g8", "e7c5", "e7d6", "e7d7", "e7d8", "e7f8", "e8d7", "e8d8", "e8c8"]; "bug 2")]
+    #[test_case("r3k2N/p1ppq1b1/1n2pnp1/1b1P4/1p2P3/2N2Q1p/PPPBBPPP/R3K2R b KQq - 0 2", &mut ["b4b3", "e6e5", "g6g5", "a7a6", "c7c6", "d7d6", "a7a5", "c7c5", "h3g2", "e6d5", "b4c3", "b6a4", "b6c4", "b6d5", "b6c8", "f6e4", "f6g4", "f6d5", "f6h5", "f6h7", "f6g8", "b5e2", "b5d3", "b5a4", "b5c4", "b5a6", "b5c6", "g7h6", "g7f8", "g7h8", "a8b8", "a8c8", "a8d8", "e7c5", "e7d6", "e7f7", "e7d8", "e7f8", "e8c8", "e8d8", "e8f8"]; "bug 2.3")]
+    // There was a bug in this position on commit 31459f2b8cee5d4ab8fd1d3152d1ca432b7df125.
+    #[test_case("r3k2r/p1ppqpb1/1n2pnp1/3PN3/Pp2P3/2N2Q1p/bPPBBPPP/R3K2R w KQkq - 1 3", &mut [ "b2b3", "g2g3", "a4a5", "d5d6", "g2g4", "g2h3", "d5e6", "c3b1", "c3d1", "c3a2", "c3b5", "e5d3", "e5c4", "e5g4", "e5c6", "e5g6", "e5d7", "e5f7", "d2c1", "d2e3", "d2f4", "d2g5", "d2h6", "e2d1", "e2f1", "e2d3", "e2c4", "e2b5", "e2a6", "a1b1", "a1c1", "a1d1", "a1a2", "h1f1", "h1g1", "f3d3", "f3e3", "f3g3", "f3h3", "f3f4", "f3g4", "f3f5", "f3h5", "f3f6", "e1d1", "e1f1", "e1g1", "e1c1"]; "bug 4.3")]
     fn test_position_generate_legal_moves(fen: &str, expected_moves: &mut [&str]) {
         let pos = Position::from_fen(fen).expect("valid position");
         let mut moves: Vec<_> = pos
