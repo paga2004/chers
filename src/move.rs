@@ -8,8 +8,8 @@ use std::fmt;
 /// The move can either be a normal move, a capture, castling, or a promotion.
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct Move {
-    pub(crate) from: Square,
-    pub(crate) to: Square,
+    pub(crate) origin: Square,
+    pub(crate) target: Square,
     pub(crate) promotion_piece: Option<PieceType>,
 }
 
@@ -24,10 +24,10 @@ impl Move {
     /// let e2e4 = Move::new(Square::E2, Square::E4, None);
     /// let promotion = Move::new(Square::F7, Square::F8, Some(PieceType::Queen));
     /// ```
-    pub fn new(from: Square, to: Square, promotion_piece: Option<PieceType>) -> Self {
+    pub fn new(origin: Square, target: Square, promotion_piece: Option<PieceType>) -> Self {
         Self {
-            from,
-            to,
+            origin,
+            target,
             promotion_piece,
         }
     }
@@ -74,8 +74,8 @@ impl Move {
             .map_or(Ok(None), |r| r.map(Some))?;
 
         Ok(Self {
-            from: Square::from_algebraic_notation(from)?,
-            to: Square::from_algebraic_notation(to)?,
+            origin: Square::from_algebraic_notation(from)?,
+            target: Square::from_algebraic_notation(to)?,
             promotion_piece,
         })
     }
@@ -83,7 +83,7 @@ impl Move {
 
 impl fmt::Display for Move {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}{}", self.from, self.to)?;
+        write!(f, "{}{}", self.origin, self.target)?;
         if let Some(p) = self.promotion_piece {
             write!(f, "{}", p.to_char().to_ascii_uppercase())?;
         }

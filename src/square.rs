@@ -7,7 +7,7 @@ use std::fmt;
 use std::ops::Index;
 use std::ops::IndexMut;
 
-/// Represents a square on the board.
+/// A square on the board.
 #[repr(u8)]
 #[derive(Clone, Copy, Debug, PartialEq, IntoPrimitive, TryFromPrimitive)]
 #[allow(missing_docs)]

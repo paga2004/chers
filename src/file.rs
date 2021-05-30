@@ -4,7 +4,7 @@ use std::fmt;
 use std::ops::Add;
 use std::ops::Sub;
 
-/// Represents a file on the board.
+/// A file (otherwise known as column) on the board.
 #[repr(u8)]
 #[derive(Clone, Copy, Debug, PartialEq, IntoPrimitive, TryFromPrimitive)]
 #[allow(missing_docs)]

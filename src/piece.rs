@@ -2,7 +2,7 @@ use crate::Color;
 use std::fmt;
 use std::ops::Index;
 
-/// Represents a piece without considering its color.
+/// A piece without a specific color.
 #[derive(Copy, Clone, PartialEq, Debug)]
 #[allow(missing_docs)]
 pub enum PieceType {
@@ -76,7 +76,8 @@ impl<T> Index<PieceType> for [T; 6] {
         &self[index as usize]
     }
 }
-/// Represents a piece.
+
+/// A piece.
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub struct Piece {
     pub(crate) piece_type: PieceType,

@@ -1,6 +1,6 @@
 use std::fmt;
 
-/// Represents the castling rights for both players.
+/// A struct for the castling rights of both players.
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct CastlingRights {
     pub(crate) white_king_side: bool,

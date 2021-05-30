@@ -25,7 +25,7 @@ pub(crate) enum BoardState {
     Piece(Piece),
 }
 
-/// Represents a chess position.
+/// A chess position.
 #[allow(missing_copy_implementations)] // copying a position is expensive and should be avoided
 #[derive(PartialEq, Clone)]
 pub struct Position {
@@ -36,7 +36,7 @@ pub struct Position {
 }
 
 impl Position {
-    /// Returns the starting position.
+    /// Creates a new position that represents the starting position.
     pub fn new() -> Self {
         Self::from_fen(fen::STARTING_FEN).unwrap()
     }
@@ -45,7 +45,8 @@ impl Position {
     ///
     /// This function does not check whether the move is legal.
     pub fn make_move(&mut self, m: &Move) {
-        if let BoardState::Piece(p) = self.pieces[m.from] {
+        // TODO: better to pass by value?
+        if let BoardState::Piece(p) = self.pieces[m.origin] {
             self.side_to_move = !self.side_to_move;
 
             // en passant square
@@ -57,8 +58,8 @@ impl Position {
                 );
 
                 // TODO: store this information in the move
-                if m.from.rank() == starting_rank && m.to.rank() == double_push_rank {
-                    self.en_passant_square = Some(Square::new(m.to.file(), en_passant_rank));
+                if m.origin.rank() == starting_rank && m.target.rank() == double_push_rank {
+                    self.en_passant_square = Some(Square::new(m.target.file(), en_passant_rank));
                 }
             }
 
@@ -89,14 +90,15 @@ impl Position {
 
                 _ => {}
             };
-            remove_castling_rights(m.from);
-            remove_castling_rights(m.to);
+            remove_castling_rights(m.origin);
+            remove_castling_rights(m.target);
 
             // white castling
             // NOTE: might be faster to store this in the move
-            if m.from == Square::E1 && p.piece_type == PieceType::King && p.color == Color::White {
+            if m.origin == Square::E1 && p.piece_type == PieceType::King && p.color == Color::White
+            {
                 // queenside
-                if m.to == Square::C1 {
+                if m.target == Square::C1 {
                     self.pieces[Square::D1] = self.pieces[Square::A1];
                     self.pieces[Square::C1] = BoardState::Piece(p);
                     self.pieces[Square::E1] = BoardState::Empty;
@@ -104,7 +106,7 @@ impl Position {
                     return;
                 }
                 // kingside
-                if m.to == Square::G1 {
+                if m.target == Square::G1 {
                     self.pieces[Square::F1] = self.pieces[Square::H1];
                     self.pieces[Square::G1] = BoardState::Piece(p);
                     self.pieces[Square::E1] = BoardState::Empty;
@@ -113,9 +115,10 @@ impl Position {
                 }
             }
             // black castling
-            if m.from == Square::E8 && p.piece_type == PieceType::King && p.color == Color::Black {
+            if m.origin == Square::E8 && p.piece_type == PieceType::King && p.color == Color::Black
+            {
                 // queenside
-                if m.to == Square::C8 {
+                if m.target == Square::C8 {
                     self.pieces[Square::D8] = self.pieces[Square::A8];
                     self.pieces[Square::C8] = BoardState::Piece(p);
                     self.pieces[Square::E8] = BoardState::Empty;
@@ -123,7 +126,7 @@ impl Position {
                     return;
                 }
                 // kingside
-                if m.to == Square::G8 {
+                if m.target == Square::G8 {
                     self.pieces[Square::F8] = self.pieces[Square::H8];
                     self.pieces[Square::G8] = BoardState::Piece(p);
                     self.pieces[Square::E8] = BoardState::Empty;
@@ -134,13 +137,13 @@ impl Position {
 
             // en passent
             if p.piece_type == PieceType::Pawn
-                && m.from.file() != m.to.file()
-                && self.pieces[m.to] == BoardState::Empty
+                && m.origin.file() != m.target.file()
+                && self.pieces[m.target] == BoardState::Empty
             {
                 let capture_field = if p.color == Color::White {
-                    Square::new(m.to.file(), m.to.rank() - 1)
+                    Square::new(m.target.file(), m.target.rank() - 1)
                 } else {
-                    Square::new(m.to.file(), m.to.rank() + 1)
+                    Square::new(m.target.file(), m.target.rank() + 1)
                 };
                 self.pieces[capture_field] = BoardState::Empty;
             }
@@ -153,8 +156,8 @@ impl Position {
             };
 
             // normal move
-            self.pieces[m.to] = BoardState::Piece(piece);
-            self.pieces[m.from] = BoardState::Empty;
+            self.pieces[m.target] = BoardState::Piece(piece);
+            self.pieces[m.origin] = BoardState::Empty;
         }
     }
 }
@@ -237,7 +240,7 @@ mod tests {
     #[test_case( "8/5P1P/2k5/4b1P1/3p4/3B1K2/8/8 w - - 1 85", "f7f8N", "5N2/7P/2k5/4b1P1/3p4/3B1K2/8/8 b - - 0 85"; "promtotion to knight")]
     #[test_case( "8/5P1P/2k5/4b1P1/3p4/3B1K2/8/8 w - - 1 85", "f7f8B", "5B2/7P/2k5/4b1P1/3p4/3B1K2/8/8 b - - 0 85"; "promotion to bishop")]
     #[test_case( "8/5P1P/2k5/4b1P1/3p4/3B1K2/8/8 w - - 1 85", "f7f8R", "5R2/7P/2k5/4b1P1/3p4/3B1K2/8/8 b - - 0 85"; "promotion to rook")]
-    // There was a bug in this position on commit 31459f2b8cee5d4ab8fd1d3152d1ca432b7df125.
+    // There was a bug in these positions on commit 31459f2b8cee5d4ab8fd1d3152d1ca432b7df125.
     #[test_case( "r3k2r/p1ppqNb1/1n2pnp1/1b1P4/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 1 2", "f7h8", "r3k2N/p1ppq1b1/1n2pnp1/1b1P4/1p2P3/2N2Q1p/PPPBBPPP/R3K2R b KQq - 0 2"; "bug 2.4")]
     #[test_case( "r3k2r/2ppqNb1/1n2pnp1/pb1P4/1p2P3/2N2Q1p/PPPBBPPP/1R2K2R w Kkq - 0 3", "e1g1", "r3k2r/2ppqNb1/1n2pnp1/pb1P4/1p2P3/2N2Q1p/PPPBBPPP/1R3RK1 b kq - 1 3"; "bug 3.3")]
     fn test_position_make_move(pos: &str, m: &str, expected: &str) {

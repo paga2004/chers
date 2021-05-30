@@ -4,7 +4,7 @@ use std::fmt;
 use std::ops::Add;
 use std::ops::Sub;
 
-/// Represents a rank on the board.
+/// A rank (otherwise known as row) on the board.
 #[repr(u8)]
 #[derive(Clone, Copy, Debug, PartialEq, IntoPrimitive, TryFromPrimitive)]
 #[allow(missing_docs)]

@@ -1,7 +1,7 @@
 use std::fmt;
 use std::ops;
 
-/// Represents the color of a player or a piece.
+/// The color of a player or a piece.
 #[derive(Copy, Clone, PartialEq, Debug)]
 #[allow(missing_docs)]
 pub enum Color {
