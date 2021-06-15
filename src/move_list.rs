@@ -1,14 +1,14 @@
-use crate::Move;
+use crate::BitMove;
 
 /// A container for moves.
 ///
 /// # Examples
 ///
 /// ```
-/// use chers::{MoveList, Move};
+/// use chers::{MoveList, BitMove, Square};
 ///
-/// let m1 = Move::from_coordinate_notation("e2e4").unwrap();
-/// let m2 = Move::from_coordinate_notation("e7e5").unwrap();
+/// let m1 = BitMove::new_quiet(Square::E2, Square::E3);
+/// let m2 = BitMove::new_quiet(Square::E7, Square::E6);
 ///
 /// let mut list = MoveList::new();
 ///
@@ -25,4 +25,4 @@ use crate::Move;
 ///     println!("{:?}", m);
 /// }
 /// ```
-pub type MoveList = Vec<Move>;
+pub type MoveList = Vec<BitMove>;

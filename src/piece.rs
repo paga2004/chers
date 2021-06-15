@@ -3,7 +3,7 @@ use std::fmt;
 use std::ops::Index;
 
 /// A piece without a specific color.
-#[derive(Copy, Clone, PartialEq, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
 #[allow(missing_docs)]
 pub enum PieceType {
     Pawn,

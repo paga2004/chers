@@ -1,28 +1,32 @@
 use crate::error::ParseMoveError;
-use crate::PieceType;
-use crate::Square;
+use crate::{PieceType, Square};
+
 use std::fmt;
 
-/// Represents a chess move.
+/// A chess move.
+///
+/// This type can be created by parsing multiple diffrent formats. For a more efficient
+/// representation of a chess move that is used internally by this engine see
+/// [`BitMove`](crate::BitMove).
 ///
 /// The move can either be a normal move, a capture, castling, or a promotion.
 #[derive(Debug, PartialEq, Clone, Copy)]
-pub struct Move {
+pub struct ParsedMove {
     pub(crate) origin: Square,
     pub(crate) target: Square,
     pub(crate) promotion_piece: Option<PieceType>,
 }
 
-impl Move {
-    /// Creates a new `Move`.
+impl ParsedMove {
+    /// Creates a new `ParsedMove`.
     ///
     /// # Examples
     ///
     /// ```
-    /// use chers::{Move, Square, PieceType};
+    /// use chers::{ParsedMove, Square, PieceType};
     ///
-    /// let e2e4 = Move::new(Square::E2, Square::E4, None);
-    /// let promotion = Move::new(Square::F7, Square::F8, Some(PieceType::Queen));
+    /// let e2e4 = ParsedMove::new(Square::E2, Square::E4, None);
+    /// let promotion = ParsedMove::new(Square::F7, Square::F8, Some(PieceType::Queen));
     /// ```
     pub fn new(origin: Square, target: Square, promotion_piece: Option<PieceType>) -> Self {
         Self {
@@ -39,14 +43,14 @@ impl Move {
     /// # Examples
     ///
     /// ```
-    /// use chers::Move;
+    /// use chers::ParsedMove;
     ///
-    /// let m1 = Move::from_coordinate_notation("e2e4");
-    /// let m2  = Move::from_coordinate_notation("e1g1"); // white short castling
-    /// let m3  = Move::from_coordinate_notation("e7e8q"); // promotion
+    /// let m1 = ParsedMove::from_coordinate_notation("e2e4");
+    /// let m2 = ParsedMove::from_coordinate_notation("e1g1"); // white short castling
+    /// let m3 = ParsedMove::from_coordinate_notation("e7e8q"); // promotion
     ///
-    /// let m4  = Move::from_coordinate_notation("e4"); // invalid
-    /// let m5  = Move::from_coordinate_notation("Bxe5"); // invalid
+    /// let m4  = ParsedMove::from_coordinate_notation("e4"); // invalid
+    /// let m5  = ParsedMove::from_coordinate_notation("Bxe5"); // invalid
     ///
     /// assert!(m1.is_ok());
     /// assert!(m2.is_ok());
@@ -81,11 +85,11 @@ impl Move {
     }
 }
 
-impl fmt::Display for Move {
+impl fmt::Display for ParsedMove {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}{}", self.origin, self.target)?;
         if let Some(p) = self.promotion_piece {
-            write!(f, "{}", p.to_char().to_ascii_uppercase())?;
+            write!(f, "{}", p.to_char())?;
         }
         Ok(())
     }
@@ -106,7 +110,7 @@ mod tests {
     #[test_case("e4e")]
     fn from_coordinate_notation_too_short(m: &str) {
         pretty_assertions::assert_eq!(
-            Move::from_coordinate_notation(m),
+            ParsedMove::from_coordinate_notation(m),
             Err(ParseMoveError::TooShort)
         );
     }
@@ -115,7 +119,7 @@ mod tests {
     #[test_case("e1x2")]
     fn from_coordinate_notation_invalid_square(m: &str) {
         pretty_assertions::assert_eq!(
-            Move::from_coordinate_notation(m),
+            ParsedMove::from_coordinate_notation(m),
             Err(ParseMoveError::InvalidSquare(
                 ParseSquareError::InvalidFile('x')
             ))
@@ -128,7 +132,7 @@ mod tests {
     #[test_case("e4e9", '9')]
     fn from_coordinate_notation_invalid_rank(m: &str, c: char) {
         pretty_assertions::assert_eq!(
-            Move::from_coordinate_notation(m),
+            ParsedMove::from_coordinate_notation(m),
             Err(ParseMoveError::InvalidSquare(
                 ParseSquareError::InvalidRank(c)
             ))
@@ -140,7 +144,7 @@ mod tests {
     #[test_case("e7e8k", 'k')] // promotion to king is impossible
     fn from_coordinate_notation_invalid_promotion_piece(m: &str, c: char) {
         pretty_assertions::assert_eq!(
-            Move::from_coordinate_notation(m),
+            ParsedMove::from_coordinate_notation(m),
             Err(ParseMoveError::InvalidPromotionPiece(c))
         );
     }
@@ -157,7 +161,7 @@ mod tests {
         to: Square,
         promotion_piece: Option<PieceType>,
     ) {
-        let expected = Move::new(from, to, promotion_piece);
-        pretty_assertions::assert_eq!(Move::from_coordinate_notation(m), Ok(expected));
+        let expected = ParsedMove::new(from, to, promotion_piece);
+        pretty_assertions::assert_eq!(ParsedMove::from_coordinate_notation(m), Ok(expected));
     }
 }

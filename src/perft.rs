@@ -11,7 +11,7 @@ pub fn perft(pos: &Position, depth: u16) -> u64 {
             for m in pos.generate_legal_moves() {
                 // TODO: get rid of this clone
                 let mut new_pos = pos.clone();
-                new_pos.make_move(&m);
+                new_pos.make_bit_move(&m);
                 count += perft(&new_pos, depth - 1);
             }
             count
@@ -33,7 +33,7 @@ mod tests {
         }
         for m in pos.generate_legal_moves() {
             let mut new_pos = pos.clone();
-            new_pos.make_move(&m);
+            new_pos.make_bit_move(&m);
             result.push_str(&format!("{}: {}\n", m, perft(&new_pos, depth - 1)));
         }
         result

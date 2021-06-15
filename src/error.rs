@@ -31,7 +31,7 @@ pub enum ParseFenError {
     InvalidFullmoveNumber,
 }
 
-/// Error returned by [`Move::from_coordinate_notation`](crate::Move::from_coordinate_notation).
+/// Error returned by [`ParsedMove::from_coordinate_notation`](crate::ParsedMove::from_coordinate_notation).
 #[derive(Error, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ParseMoveError {
     /// Move too short

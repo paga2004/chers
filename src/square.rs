@@ -9,7 +9,7 @@ use std::ops::IndexMut;
 
 /// A square on the board.
 #[repr(u8)]
-#[derive(Clone, Copy, Debug, PartialEq, IntoPrimitive, TryFromPrimitive)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, IntoPrimitive, TryFromPrimitive)]
 #[allow(missing_docs)]
 #[rustfmt::skip]
 pub enum Square {

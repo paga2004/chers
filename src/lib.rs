@@ -12,13 +12,14 @@
 #![warn(missing_docs)]
 
 mod attack;
+mod bit_move;
 mod castling_rights;
 mod color;
 mod fen;
 mod file;
 mod generate_moves;
-mod r#move;
 mod move_list;
+mod parsed_move;
 mod perft;
 mod piece;
 mod position;
@@ -35,8 +36,9 @@ pub use color::Color;
 pub use piece::Piece;
 pub use piece::PieceType;
 
+pub use bit_move::BitMove;
 pub use move_list::MoveList;
-pub use r#move::Move;
+pub use parsed_move::ParsedMove;
 
 pub use castling_rights::CastlingRights;
 pub use position::Position;
