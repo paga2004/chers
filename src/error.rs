@@ -1,10 +1,14 @@
 //! Types representing various errors.
 
+// Deriving these traits causes a compliler warning, which is actually a bug in rustc.
+// https://github.com/rust-lang/rust/issues/53738
+#![allow(single_use_lifetimes)]
+
 use thiserror::Error;
 
 /// Error returned by [`Position::from_fen`](crate::Position::from_fen).
 #[derive(Error, Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ParseFenError {
+pub enum ParseFenError<'a> {
     /// FEN too short
     #[error("too short")]
     TooShort,
@@ -19,16 +23,16 @@ pub enum ParseFenError {
     WrongNumberOfFiles,
     /// Invalid castling rights
     #[error("invalid castling rights (unexpected charater {0})")]
-    InvalidCastlingRights(char),
+    InvalidCastlingRights(&'a str),
     /// Invalid en passant square
     #[error("invalid en passant square")]
     InvalidEnPassantSquare(#[from] ParseSquareError),
     /// Invalid halfmove clock
     #[error("invalid halfmove clock")]
-    InvalidHalfMoveClock,
+    InvalidHalfmoveClock(&'a str),
     /// Invalid fullmove number
     #[error("invalid fullmove number")]
-    InvalidFullmoveNumber,
+    InvalidFullmoveNumber(&'a str),
 }
 
 /// Error returned by [`ParsedMove::from_coordinate_notation`](crate::ParsedMove::from_coordinate_notation).

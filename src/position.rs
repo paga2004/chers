@@ -5,6 +5,7 @@ use crate::Color;
 use crate::File;
 use crate::ParsedMove;
 use crate::Piece;
+use crate::PieceType;
 use crate::Rank;
 use crate::Square;
 use std::fmt;
@@ -33,6 +34,8 @@ pub struct Position {
     pub(crate) side_to_move: Color,
     pub(crate) castling_rights: CastlingRights,
     pub(crate) en_passant_square: Option<Square>,
+    pub(crate) ply: u16,
+    pub(crate) halfmove_clock: u16,
 }
 
 impl Position {
@@ -65,6 +68,12 @@ impl Position {
     pub fn make_bit_move(&mut self, m: &BitMove) {
         if let BoardState::Piece(p) = self.pieces[m.origin()] {
             self.side_to_move = !self.side_to_move;
+            self.ply += 1;
+            self.halfmove_clock = if m.is_capture() || p.is_type(PieceType::Pawn) {
+                0
+            } else {
+                self.halfmove_clock + 1
+            };
 
             self.en_passant_square = if m.is_double_push() {
                 Some(Square::new(
@@ -193,6 +202,8 @@ impl fmt::Display for Position {
         } else {
             writeln!(f, "-")?;
         }
+        writeln!(f, "Halfmove clock: {}", self.halfmove_clock)?;
+        writeln!(f, "Ply: {}", self.ply)?;
         writeln!(f)?;
 
         // print board
@@ -271,6 +282,8 @@ mod tests {
 Active color: white
 Castling rights: KQkq
 En passant: -
+Halfmove clock: 0
+Ply: 1
 
   ┌───┬───┬───┬───┬───┬───┬───┬───┐
 8 │ r │ n │ b │ q │ k │ b │ n │ r │

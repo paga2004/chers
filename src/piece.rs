@@ -51,7 +51,7 @@ impl PieceType {
     /// assert_eq!(PieceType::Knight.to_char(), 'n');
     /// assert_eq!(PieceType::King.to_char(), 'k');
     /// ```
-    pub fn to_char(&self) -> char {
+    pub fn to_char(self) -> char {
         match self {
             Self::Pawn => 'p',
             Self::Knight => 'n',

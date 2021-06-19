@@ -24,7 +24,7 @@ impl Position {
     /// ```
     ///
     /// [FEN]: https://en.wikipedia.org/wiki/Forsyth%E2%80%93Edwards_Notation
-    pub fn from_fen(fen: &str) -> Result<Self, ParseFenError> {
+    pub fn from_fen(fen: &str) -> Result<Self, ParseFenError<'_>> {
         let mut fields = fen.split(' ');
 
         let mut next_field = || fields.next().ok_or(ParseFenError::TooShort);
@@ -33,12 +33,18 @@ impl Position {
         let active_color = parse_color(next_field()?)?;
         let castling_rights = parse_castling_rights(next_field()?)?;
         let en_passant_square = parse_en_passant_square(next_field()?)?;
+        let halfmove_clock = parse_halfmove_clock(next_field()?)?;
+        let fullmove_number = parse_fullmove_number(next_field()?)?;
+
+        let ply = fullmove_number * 2 - active_color.map(1, 0);
 
         Ok(Self {
             pieces,
             side_to_move: active_color,
             castling_rights,
             en_passant_square,
+            halfmove_clock,
+            ply,
         })
     }
 
@@ -49,7 +55,7 @@ impl Position {
 }
 
 // TODO: Rewrite this function
-fn parse_pieces(s: &str) -> Result<[BoardState; 120], ParseFenError> {
+fn parse_pieces(s: &str) -> Result<[BoardState; 120], ParseFenError<'_>> {
     let mut chars = s.chars();
     let mut pieces = [BoardState::OffBoard; 120];
 
@@ -90,12 +96,12 @@ fn parse_pieces(s: &str) -> Result<[BoardState; 120], ParseFenError> {
     Ok(pieces)
 }
 
-fn parse_color(s: &str) -> Result<Color, ParseFenError> {
+fn parse_color(s: &str) -> Result<Color, ParseFenError<'_>> {
     let c = s.chars().next().ok_or(ParseFenError::TooShort)?;
     Color::from_char(c).ok_or(ParseFenError::InvalidColor(c))
 }
 
-fn parse_castling_rights(s: &str) -> Result<CastlingRights, ParseFenError> {
+fn parse_castling_rights(s: &str) -> Result<CastlingRights, ParseFenError<'_>> {
     let mut castling_rights = CastlingRights {
         white_king_side: false,
         white_queen_side: false,
@@ -111,7 +117,7 @@ fn parse_castling_rights(s: &str) -> Result<CastlingRights, ParseFenError> {
                 'k' => castling_rights.black_king_side = true,
                 'q' => castling_rights.black_queen_side = true,
 
-                other => return Err(ParseFenError::InvalidCastlingRights(other)),
+                _ => return Err(ParseFenError::InvalidCastlingRights(s)),
             }
         }
     }
@@ -119,11 +125,21 @@ fn parse_castling_rights(s: &str) -> Result<CastlingRights, ParseFenError> {
     Ok(castling_rights)
 }
 
-fn parse_en_passant_square(s: &str) -> Result<Option<Square>, ParseFenError> {
+fn parse_en_passant_square(s: &str) -> Result<Option<Square>, ParseFenError<'_>> {
     if s == "-" {
         return Ok(None);
     }
     Ok(Some(Square::from_algebraic_notation(s)?))
+}
+
+fn parse_halfmove_clock(s: &str) -> Result<u16, ParseFenError<'_>> {
+    s.parse()
+        .map_err(|_| ParseFenError::InvalidHalfmoveClock(s))
+}
+
+fn parse_fullmove_number(s: &str) -> Result<u16, ParseFenError<'_>> {
+    s.parse()
+        .map_err(|_| ParseFenError::InvalidFullmoveNumber(s))
 }
 
 #[cfg(test)]
@@ -139,9 +155,9 @@ mod tests {
     #[test_case("rnbqkbnr/pppppppp/9/9/9/9/PPPPPPPP/RNBQKBNR w KQkq - 0 1", WrongNumberOfFiles; "digit 9 in first sector")]
     #[test_case("rnbqk?nr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", InvalidPiece('?'); "invalid piece")]
     #[test_case("k7/8/8/8/8/8/8/k7 x KQkq - 0 1", InvalidColor('x'); "invalid color")]
-    #[test_case("k7/8/8/8/8/8/8/k7 w KQkqx - 0 1", InvalidCastlingRights('x'); "invalid castling rights x")]
-    #[test_case("k7/8/8/8/8/8/8/k7 w KQkqx - 0 1", InvalidCastlingRights('x'); "invalid castling rights trailing character")]
-    fn test_from_fen_invalid(fen: &str, err: ParseFenError) {
+    #[test_case("k7/8/8/8/8/8/8/k7 w Kx - 0 1", InvalidCastlingRights("Kx"); "invalid castling rights x")]
+    #[test_case("k7/8/8/8/8/8/8/k7 w KQkqx - 0 1", InvalidCastlingRights("KQkqx"); "invalid castling rights trailing character")]
+    fn test_from_fen_invalid(fen: &str, err: ParseFenError<'_>) {
         pretty_assertions::assert_eq!(Position::from_fen(fen), Err(err));
     }
 
@@ -163,7 +179,9 @@ mod tests {
         ],
         Color::White,
         None,
-        CastlingRights::default()
+        CastlingRights::default(),
+        0,
+        1
         ; "starting position"
     )]
     #[test_case(
@@ -184,7 +202,9 @@ mod tests {
         ],
         Color::Black,
         Some(Square::E3),
-        CastlingRights::default()
+        CastlingRights::default(),
+        0,
+        2
         ; "e4"
     )]
     #[test_case(
@@ -205,7 +225,9 @@ mod tests {
         ],
         Color::White,
         Some(Square::C6),
-        CastlingRights::default()
+        CastlingRights::default(),
+        0,
+        3
         ; "e4 c5"
     )]
     #[test_case(
@@ -226,7 +248,9 @@ mod tests {
         ],
         Color::Black,
         None,
-        CastlingRights::default()
+        CastlingRights::default(),
+        1,
+        4
         ; "e4 c5 nf3"
     )]
     #[test_case(
@@ -247,7 +271,9 @@ mod tests {
         ],
         Color::White,
         None,
-        CastlingRights::new(true, false, false, true)
+        CastlingRights::new(true, false, false, true),
+        0,
+        1
         ; "castling rights"
     )]
     #[test_case(
@@ -268,7 +294,9 @@ mod tests {
         ],
         Color::White,
         None,
-        CastlingRights::new(false, false, false, false)
+        CastlingRights::new(false, false, false, false),
+        0,
+        1
         ; "no castling rights"
     )]
     fn test_from_fen(
@@ -277,6 +305,8 @@ mod tests {
         side_to_move: Color,
         en_passant_square: Option<Square>,
         castling_rights: CastlingRights,
+        halfmove_clock: u16,
+        ply: u16,
     ) {
         let bytes: Vec<&[u8]> = pieces.iter().map(|s| s.as_bytes()).collect();
         let mut piece_array = [BoardState::OffBoard; 120];
@@ -296,6 +326,8 @@ mod tests {
             side_to_move,
             en_passant_square,
             castling_rights,
+            halfmove_clock,
+            ply,
         };
 
         pretty_assertions::assert_eq!(Position::from_fen(fen).expect("valid position"), expected);
