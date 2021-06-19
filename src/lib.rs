@@ -28,6 +28,10 @@ mod square;
 
 pub mod error;
 
+// This module needs to be public so that it can be used in benchmarkes and integration tests.
+#[doc(hidden)]
+pub mod utils;
+
 pub use file::File;
 pub use rank::Rank;
 pub use square::Square;
