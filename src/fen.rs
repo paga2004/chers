@@ -1,4 +1,7 @@
+use std::sync::Arc;
+
 use crate::position::BoardState;
+use crate::position_state::PositionState;
 use crate::Color;
 use crate::File;
 use crate::Piece;
@@ -6,8 +9,6 @@ use crate::Position;
 use crate::Rank;
 use crate::Square;
 use crate::{castling_rights::CastlingRights, error::ParseFenError};
-
-pub(crate) const STARTING_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
 impl Position {
     /// Creates a Position from a [FEN] string or returns an error if the fen is invalid.
@@ -25,7 +26,7 @@ impl Position {
     ///
     /// [FEN]: https://en.wikipedia.org/wiki/Forsyth%E2%80%93Edwards_Notation
     pub fn from_fen(fen: &str) -> Result<Self, ParseFenError<'_>> {
-        let mut fields = fen.split(' ');
+        let mut fields = fen.split_whitespace();
 
         let mut next_field = || fields.next().ok_or(ParseFenError::TooShort);
 
@@ -38,13 +39,16 @@ impl Position {
 
         let ply = fullmove_number * 2 - active_color.map(1, 0);
 
-        Ok(Self {
-            pieces,
-            side_to_move: active_color,
+        let state = Arc::new(PositionState::new(
             castling_rights,
             en_passant_square,
             halfmove_clock,
+        ));
+        Ok(Self {
+            pieces,
+            side_to_move: active_color,
             ply,
+            state,
         })
     }
 
@@ -321,13 +325,16 @@ mod tests {
                 }
             }
         }
+        let state = Arc::new(PositionState::new(
+            castling_rights,
+            en_passant_square,
+            halfmove_clock,
+        ));
         let expected = Position {
             pieces: piece_array,
             side_to_move,
-            en_passant_square,
-            castling_rights,
-            halfmove_clock,
             ply,
+            state,
         };
 
         pretty_assertions::assert_eq!(Position::from_fen(fen).expect("valid position"), expected);

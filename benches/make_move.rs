@@ -5,7 +5,7 @@ fn make_move_100(c: &mut Criterion) {
     let data: Vec<(Position, BitMove)> = utils::fen::RANDOM_FENS
         .iter()
         .map(|fen| Position::from_fen(fen).unwrap())
-        .flat_map(|pos| {
+        .flat_map(|mut pos| {
             pos.generate_legal_moves()
                 .into_iter()
                 .map(move |m| (pos.clone(), m))

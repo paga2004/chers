@@ -1,5 +1,56 @@
+use std::fs::File;
+use std::io::BufRead;
+use std::io::BufReader;
+use std::path::Path;
+
 pub const STARTING_POSITION: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 pub const KIWIPETE: &str = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1";
+
+#[cfg(test)]
+type Decoder = BufReader<zstd::Decoder<'static, BufReader<File>>>;
+
+#[derive(Debug)]
+pub struct FenIterator<R>(BufReader<R>);
+
+impl<R: std::io::Read> FenIterator<R> {
+    pub fn new(reader: R) -> Self {
+        Self(BufReader::new(reader))
+    }
+}
+
+impl FenIterator<File> {
+    pub fn from_file<P: AsRef<Path>>(path: P) -> std::io::Result<Self> {
+        let f = File::open(path)?;
+        Ok(Self::new(f))
+    }
+}
+
+#[cfg(test)]
+impl FenIterator<Decoder> {
+    pub fn from_zstd_file<P: AsRef<Path>>(path: P) -> std::io::Result<Self> {
+        let f = File::open(path)?;
+        let d = zstd::Decoder::new(f)?;
+        Ok(Self::new(BufReader::new(d)))
+    }
+}
+
+impl<R: std::io::Read> Iterator for FenIterator<R> {
+    type Item = std::io::Result<String>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let mut s = String::new();
+        match self.0.read_line(&mut s) {
+            Ok(0) => None,
+            Ok(_) => Some(Ok(s)),
+            Err(e) => Some(Err(e)),
+        }
+    }
+}
+
+#[cfg(test)]
+pub fn random_fens() -> FenIterator<Decoder> {
+    FenIterator::from_zstd_file("/data/archives/datasets/chess/sorted.fen.zst").unwrap()
+}
 
 pub static RANDOM_FENS: [&str; 85] = [
     "rnbqkbnr/pppppppp/8/8/8/5N2/PPPPPPPP/RNBQKB1R b KQkq - 1 1",
@@ -88,3 +139,21 @@ pub static RANDOM_FENS: [&str; 85] = [
     "rbr5/1q3p2/pPp1pBpk/P1QpP2p/7P/6P1/1R3P2/2R3K1 w - - 4 43",
     "rbr5/1q3p2/pPp1pBpk/P1QpP2p/1R5P/6P1/5P2/2R3K1 b - - 5 43",
 ];
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::Position;
+
+    #[test]
+    fn random_fens_test() {
+        let iter = random_fens();
+        let mut count = 0;
+        iter.for_each(|s| {
+            let fen = s.unwrap();
+            let pos = Position::from_fen(&fen);
+            assert!(pos.is_ok(), "{}", fen);
+            count += 1;
+        });
+    }
+}

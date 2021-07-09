@@ -23,6 +23,7 @@ mod parsed_move;
 mod perft;
 mod piece;
 mod position;
+mod position_state;
 mod rank;
 mod square;
 
@@ -46,5 +47,6 @@ pub use parsed_move::ParsedMove;
 
 pub use castling_rights::CastlingRights;
 pub use position::Position;
+pub(crate) use position_state::PositionState;
 
 pub use perft::perft;

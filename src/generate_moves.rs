@@ -60,7 +60,7 @@ impl Position {
     /// ```
     /// use chers::{Position, ParsedMove};
     ///
-    /// let pos = Position::new();
+    /// let mut pos = Position::new();
     /// let moves = pos.generate_legal_moves();
     ///
     /// let m1 = ParsedMove::from_coordinate_notation("e2e4").unwrap();
@@ -69,14 +69,15 @@ impl Position {
     /// assert!(moves.iter().any(|m| *m == m1));
     /// assert!(moves.iter().all(|m| *m != m2));
     /// ```
-    pub fn generate_legal_moves(&self) -> MoveList {
+    pub fn generate_legal_moves(&mut self) -> MoveList {
         // FIXME: This is really slow.
         self.generate_pseudo_legal_moves()
             .into_iter()
             .filter(|candidate| {
-                let mut clone = self.clone();
-                clone.make_bit_move(candidate);
-                !clone.in_check(self.side_to_move)
+                self.make_bit_move(candidate);
+                let result = !self.in_check(!self.side_to_move);
+                self.undo_move();
+                result
             })
             .collect()
     }
@@ -243,7 +244,7 @@ impl Position {
         // TODO: dry
         match self.side_to_move {
             Color::White => {
-                if self.castling_rights.white_king_side {
+                if self.state.castling_rights.white_king_side {
                     // NOTE: Might be faster to check first if both squares are empty since that is
                     // just a lookup.
                     if self.is_empty_and_not_attacked(F1)
@@ -253,7 +254,7 @@ impl Position {
                         self.add_castle_kingside(moves, E1, G1);
                     }
                 }
-                if self.castling_rights.white_queen_side {
+                if self.state.castling_rights.white_queen_side {
                     // NOTE: Might be faster to check first if all squares are empty since that is
                     // just a lookup.
 
@@ -267,7 +268,7 @@ impl Position {
                 }
             }
             Color::Black => {
-                if self.castling_rights.black_king_side {
+                if self.state.castling_rights.black_king_side {
                     // NOTE: Might be faster to check first if both squares are empty since that is
                     // just a lookup.
                     if self.is_empty_and_not_attacked(F8)
@@ -277,7 +278,7 @@ impl Position {
                         self.add_castle_kingside(moves, E8, G8);
                     }
                 }
-                if self.castling_rights.black_queen_side {
+                if self.state.castling_rights.black_queen_side {
                     // NOTE: Might be faster to check first if all squares are empty since that is
                     // just a lookup.
 
@@ -298,7 +299,7 @@ impl Position {
     }
 
     fn generate_en_passant_moves(&self, moves: &mut MoveList) {
-        if let Some(sq) = self.en_passant_square {
+        if let Some(sq) = self.state.ep_square {
             // The offset is added to the target square. That's why it's the other way around.
             for offset in &self
                 .side_to_move
@@ -319,10 +320,12 @@ impl Position {
 mod tests {
     use test_case::test_case;
 
+    use crate::utils;
+
     use super::*;
 
     #[test_case("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", &mut ["a2a3", "a2a4", "b2b3", "b2b4", "c2c3", "c2c4", "d2d3", "d2d4", "e2e3", "e2e4", "f2f3", "f2f4", "g2g3", "g2g4", "h2h3", "h2h4", "b1a3", "b1c3", "g1f3", "g1h3"]; "starting position")]
-    #[test_case("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1", &mut ["a2a3", "b2b3", "g2g3", "d5d6", "a2a4", "g2g4", "g2h3", "d5e6", "c3b1", "c3d1", "c3a4", "c3b5", "e5d3", "e5c4", "e5g4", "e5c6", "e5g6", "e5d7", "e5f7", "d2c1", "d2e3", "d2f4", "d2g5", "d2h6", "e2d1", "e2f1", "e2d3", "e2c4", "e2b5", "e2a6", "a1b1", "a1c1", "a1d1", "h1f1", "h1g1", "f3d3", "f3e3", "f3g3", "f3h3", "f3f4", "f3g4", "f3f5", "f3h5", "f3f6", "e1d1", "e1f1", "e1g1", "e1c1"]; "kiwipete")]
+    #[test_case(utils::fen::KIWIPETE, &mut ["a2a3", "b2b3", "g2g3", "d5d6", "a2a4", "g2g4", "g2h3", "d5e6", "c3b1", "c3d1", "c3a4", "c3b5", "e5d3", "e5c4", "e5g4", "e5c6", "e5g6", "e5d7", "e5f7", "d2c1", "d2e3", "d2f4", "d2g5", "d2h6", "e2d1", "e2f1", "e2d3", "e2c4", "e2b5", "e2a6", "a1b1", "a1c1", "a1d1", "h1f1", "h1g1", "f3d3", "f3e3", "f3g3", "f3h3", "f3f4", "f3g4", "f3f5", "f3h5", "f3f6", "e1d1", "e1f1", "e1g1", "e1c1"]; "kiwipete")]
     // En passant move is not covered in kiwipete.
     #[test_case("rnbqkbnr/pppp2pp/8/3Ppp2/8/8/PPP1PPPP/RNBQKBNR w KQkq e6 0 3", &mut ["a2a3", "b2b3", "c2c3", "e2e3", "f2f3", "g2g3", "h2h3", "d5d6", "a2a4", "b2b4", "c2c4", "e2e4", "f2f4", "g2g4", "h2h4", "d5e6", "b1d2", "b1a3", "b1c3", "g1f3", "g1h3", "c1d2", "c1e3", "c1f4", "c1g5", "c1h6", "d1d2", "d1d3", "d1d4", "e1d2", ]; "en passant")]
     // There was a bug in this position on commit 31459f2b8cee5d4ab8fd1d3152d1ca432b7df125.
@@ -334,7 +337,7 @@ mod tests {
     #[test_case("r3k2r/p1ppqpb1/1n2pnp1/3PN3/Pp2P3/2N2Q1p/bPPBBPPP/R3K2R w KQkq - 1 3", &mut ["b2b3", "g2g3", "a4a5", "d5d6", "g2g4", "g2h3", "d5e6", "c3b1", "c3d1", "c3a2", "c3b5", "e5d3", "e5c4", "e5g4", "e5c6", "e5g6", "e5d7", "e5f7", "d2c1", "d2e3", "d2f4", "d2g5", "d2h6", "e2d1", "e2f1", "e2d3", "e2c4", "e2b5", "e2a6", "a1b1", "a1c1", "a1d1", "a1a2", "h1f1", "h1g1", "f3d3", "f3e3", "f3g3", "f3h3", "f3f4", "f3g4", "f3f5", "f3h5", "f3f6", "e1d1", "e1f1", "e1g1", "e1c1"]; "bug 4.3")]
     #[test_case("r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1R1K b kq - 1 1", &mut ["c7c6", "d7d6", "c7c5", "d7d5", "b2a1q", "b2a1r", "b2a1b", "b2a1n", "b2b1q", "b2b1r", "b2b1b", "b2b1n", "g7h6", "a5b3", "a5c4", "a5c6", "f6e4", "f6g4", "f6d5", "f6h5", "f6g8", "b6g1", "b6f2", "b6e3", "b6d4", "b6c5", "b6a7", "g6e4", "g6f5", "g6h5", "a8a7", "a8b8", "a8c8", "a8d8", "h8f8", "h8g8", "a3a2", "a3b3", "a3c3", "a3d3", "a3e3", "a3f3", "a3a4", "a3b4", "e8c8", "e8d8"]; "bug 5")]
     fn test_position_generate_legal_moves(fen: &str, expected_moves: &mut [&str]) {
-        let pos = Position::from_fen(fen).expect("valid position");
+        let mut pos = Position::from_fen(fen).expect("valid position");
         let mut moves: Vec<_> = pos
             .generate_legal_moves()
             .into_iter()

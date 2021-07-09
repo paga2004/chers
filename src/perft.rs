@@ -1,7 +1,7 @@
 use crate::Position;
 
 /// Counts the number of leaf nodes from generating moves to a certain depth.
-pub fn perft(pos: &Position, depth: u16) -> u64 {
+pub fn perft(pos: &mut Position, depth: u16) -> u64 {
     match depth {
         0 => 1,
         1 => pos.generate_legal_moves().len() as u64,
@@ -9,10 +9,9 @@ pub fn perft(pos: &Position, depth: u16) -> u64 {
             let mut count = 0;
 
             for m in pos.generate_legal_moves() {
-                // TODO: get rid of this clone
-                let mut new_pos = pos.clone();
-                new_pos.make_bit_move(&m);
-                count += perft(&new_pos, depth - 1);
+                pos.make_bit_move(&m);
+                count += perft(pos, depth - 1);
+                pos.undo_move();
             }
             count
         }
@@ -24,23 +23,24 @@ mod tests {
     use test_case::test_case;
 
     use super::*;
-    use crate::fen::STARTING_FEN;
 
-    fn print_perft_results(pos: &Position, depth: u16) -> String {
+    use crate::utils;
+
+    fn print_perft_results(pos: &mut Position, depth: u16) -> String {
         let mut result = String::new();
         if depth == 0 {
             return result;
         }
         for m in pos.generate_legal_moves() {
-            let mut new_pos = pos.clone();
-            new_pos.make_bit_move(&m);
-            result.push_str(&format!("{}: {}\n", m, perft(&new_pos, depth - 1)));
+            pos.make_bit_move(&m);
+            result.push_str(&format!("{}: {}\n", m, perft(pos, depth - 1)));
+            pos.undo_move();
         }
         result
     }
 
-    const POS_1: &str = STARTING_FEN;
-    const POS_2: &str = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1"; // kiwipete
+    const POS_1: &str = utils::fen::STARTING_POSITION;
+    const POS_2: &str = utils::fen::KIWIPETE;
     const POS_3: &str = "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1";
     const POS_4: &str = "r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1";
     const POS_5: &str = "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8";
@@ -94,8 +94,8 @@ mod tests {
     #[test_case("r3k2r/p1ppqpb1/1n2pnp1/3PN3/1pb1P3/P1N2Q1p/1PPBBPPP/R3K2R w KQkq - 1 2", 3,   104_588; "bug 4.1")]
     #[test_case("r3k2r/p1ppqpb1/1n2pnp1/3PN3/Ppb1P3/2N2Q1p/1PPBBPPP/R3K2R b KQkq - 0 2",  2,     2_122; "bug 4.2")]
     fn test_perft(fen: &str, depth: u16, expected: u64) {
-        let pos = Position::from_fen(fen).expect("valid position");
-        let result = perft(&pos, depth);
+        let mut pos = Position::from_fen(fen).expect("valid position");
+        let result = perft(&mut pos, depth);
         if result != expected {
             panic!(
                 "Perft did not return the expected results!\
@@ -104,7 +104,7 @@ mod tests {
                 result,
                 expected,
                 result as i128 - expected as i128,
-                print_perft_results(&pos, depth)
+                print_perft_results(&mut pos, depth)
             );
         }
     }
