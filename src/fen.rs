@@ -52,8 +52,8 @@ impl Position {
             for j in 0..8 {
                 sq = Square::new(File::new(i), Rank::new(j));
                 if let BoardState::Piece(p) = pieces[sq] {
-                    if p.is_type(PieceType::King) {
-                        king_square[p.color as usize] = sq;
+                    if p.is_type(PieceType::KING) {
+                        king_square[p.color.to_usize()] = sq;
                     }
                 }
             }
@@ -197,7 +197,7 @@ mod tests {
             "----------",
             "----------",
         ],
-        Color::White,
+        Color::WHITE,
         None,
         CastlingRights::default(),
         0,
@@ -220,7 +220,7 @@ mod tests {
             "----------",
             "----------",
         ],
-        Color::Black,
+        Color::BLACK,
         Some(Square::E3),
         CastlingRights::default(),
         0,
@@ -243,7 +243,7 @@ mod tests {
             "----------",
             "----------",
         ],
-        Color::White,
+        Color::WHITE,
         Some(Square::C6),
         CastlingRights::default(),
         0,
@@ -266,7 +266,7 @@ mod tests {
            "----------",
            "----------",
         ],
-        Color::Black,
+        Color::BLACK,
         None,
         CastlingRights::default(),
         1,
@@ -289,7 +289,7 @@ mod tests {
            "----------",
            "----------",
         ],
-        Color::White,
+        Color::WHITE,
         None,
         CastlingRights::new(true, false, false, true),
         0,
@@ -312,7 +312,7 @@ mod tests {
            "----------",
            "----------",
         ],
-        Color::White,
+        Color::WHITE,
         None,
         CastlingRights::new(false, false, false, false),
         0,
@@ -347,8 +347,8 @@ mod tests {
             for j in 0..8 {
                 sq = Square::new(File::new(i), Rank::new(j));
                 if let BoardState::Piece(p) = piece_array[sq] {
-                    if p.is_type(PieceType::King) {
-                        king_square[p.color as usize] = sq;
+                    if p.is_type(PieceType::KING) {
+                        king_square[p.color.to_usize()] = sq;
                     }
                 }
             }

@@ -51,7 +51,6 @@ impl Position {
     /// If the move is illegal `false` will be returned and the position is left unchanged.
     /// Otherwise `true` will be returned.
     pub fn make_move(&mut self, m: ParsedMove) -> bool {
-        // TODO: better to pass by refrence?
         let legal_moves = self.generate_legal_moves();
         if let Some(bit_move) = legal_moves.iter().find(|bm| *bm == &m) {
             self.make_bit_move(bit_move);
@@ -72,11 +71,12 @@ impl Position {
         if let BoardState::Piece(p) = self.pieces[m.origin()] {
             self.side_to_move = !self.side_to_move;
             self.ply += 1;
-            let halfmove_clock = if m.is_capture() || p.is_type(PieceType::Pawn) {
-                0
-            } else {
-                state.halfmove_clock + 1
-            };
+            let halfmove_clock =
+                if m.is_capture() || p.is_type(PieceType::PAWN_W) || p.is_type(PieceType::PAWN_B) {
+                    0
+                } else {
+                    state.halfmove_clock + 1
+                };
             let mut castling_rights = state.castling_rights;
             let ep_square = if m.is_double_push() {
                 Some(Square::new(
@@ -89,7 +89,7 @@ impl Position {
 
             // en passent
             let capture_field = if m.is_en_passant() {
-                if p.color == Color::White {
+                if p.color == Color::WHITE {
                     Square::new(m.target().file(), m.target().rank() - 1)
                 } else {
                     Square::new(m.target().file(), m.target().rank() + 1)
@@ -155,12 +155,12 @@ impl Position {
                 prev_state: Some(state.clone()),
             });
 
-            if m.origin() == self.king_square[!self.side_to_move as usize] {
-                self.king_square[!self.side_to_move as usize] = m.target();
+            if m.origin() == self.king_square[(!self.side_to_move).to_usize()] {
+                self.king_square[(!self.side_to_move).to_usize()] = m.target();
             }
             // white castling
             match p.color {
-                Color::White => {
+                Color::WHITE => {
                     if m.is_king_side_castle() {
                         self.pieces[Square::F1] = self.pieces[Square::H1];
                         self.pieces[Square::G1] = BoardState::Piece(p);
@@ -176,7 +176,7 @@ impl Position {
                         return;
                     }
                 }
-                Color::Black => {
+                Color::BLACK => {
                     if m.is_king_side_castle() {
                         self.pieces[Square::F8] = self.pieces[Square::H8];
                         self.pieces[Square::G8] = BoardState::Piece(p);
@@ -212,7 +212,7 @@ impl Position {
         let m = self.state.prev_move.unwrap();
         if let BoardState::Piece(p) = self.pieces[m.target()] {
             let capture_field = if m.is_en_passant() {
-                if self.side_to_move == Color::White {
+                if self.side_to_move == Color::WHITE {
                     Square::new(m.target().file(), m.target().rank() - 1)
                 } else {
                     Square::new(m.target().file(), m.target().rank() + 1)
@@ -222,7 +222,7 @@ impl Position {
             };
 
             let piece = if m.is_promotion() {
-                Piece::new(PieceType::Pawn, p.color)
+                Piece::new(p.color.map(PieceType::PAWN_W, PieceType::PAWN_B), p.color)
             } else {
                 p
             };
@@ -230,15 +230,15 @@ impl Position {
                 Some(p) => BoardState::Piece(p),
                 None => BoardState::Empty,
             };
-            if m.target() == self.king_square[self.side_to_move as usize] {
-                self.king_square[self.side_to_move as usize] = m.origin();
+            if m.target() == self.king_square[self.side_to_move.to_usize()] {
+                self.king_square[self.side_to_move.to_usize()] = m.origin();
             }
 
             self.state = self.state.prev_state.as_ref().unwrap().clone();
 
             // castling
             match p.color {
-                Color::White => {
+                Color::WHITE => {
                     if m.is_king_side_castle() {
                         self.pieces[Square::H1] = self.pieces[Square::F1];
                         self.pieces[Square::E1] = BoardState::Piece(p);
@@ -254,7 +254,7 @@ impl Position {
                         return;
                     }
                 }
-                Color::Black => {
+                Color::BLACK => {
                     if m.is_king_side_castle() {
                         self.pieces[Square::H8] = self.pieces[Square::F8];
                         self.pieces[Square::E8] = BoardState::Piece(p);

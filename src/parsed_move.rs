@@ -26,7 +26,7 @@ impl ParsedMove {
     /// use chers::{ParsedMove, Square, PieceType};
     ///
     /// let e2e4 = ParsedMove::new(Square::E2, Square::E4, None);
-    /// let promotion = ParsedMove::new(Square::F7, Square::F8, Some(PieceType::Queen));
+    /// let promotion = ParsedMove::new(Square::F7, Square::F8, Some(PieceType::QUEEN));
     /// ```
     pub fn new(origin: Square, target: Square, promotion_piece: Option<PieceType>) -> Self {
         Self {
@@ -69,9 +69,10 @@ impl ParsedMove {
                 PieceType::from_char(c)
                     .ok_or(ParseMoveError::InvalidPromotionPiece(c))
                     .and_then(|p| match p {
-                        PieceType::Pawn | PieceType::King => {
-                            Err(ParseMoveError::InvalidPromotionPiece(c))
-                        }
+                        PieceType::NIL
+                        | PieceType::KING
+                        | PieceType::PAWN_W
+                        | PieceType::PAWN_B => Err(ParseMoveError::InvalidPromotionPiece(c)),
                         other => Ok(other),
                     })
             })
@@ -101,7 +102,6 @@ mod tests {
 
     use super::*;
     use crate::error::ParseSquareError;
-    use PieceType::*;
     use Square::*;
 
     #[test_case(""; "empty string")] // error without the explicit name
@@ -151,10 +151,10 @@ mod tests {
 
     #[test_case("e2e4", E2, E4, None)]
     #[test_case("e4g5", E4, G5, None)]
-    #[test_case("f7f8q", F7, F8, Some(Queen))]
-    #[test_case("f7f8r", F7, F8, Some(Rook))]
-    #[test_case("f7f8b", F7, F8, Some(Bishop))]
-    #[test_case("f7f8n", F7, F8, Some(Knight))]
+    #[test_case("f7f8q", F7, F8, Some(PieceType::QUEEN))]
+    #[test_case("f7f8r", F7, F8, Some(PieceType::ROOK))]
+    #[test_case("f7f8b", F7, F8, Some(PieceType::BISHOP))]
+    #[test_case("f7f8n", F7, F8, Some(PieceType::KNIGHT))]
     fn test_move_from_coordinate_notation(
         m: &str,
         from: Square,

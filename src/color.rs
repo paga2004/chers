@@ -2,14 +2,14 @@ use std::fmt;
 use std::ops;
 
 /// The color of a player or a piece.
-#[derive(Copy, Clone, PartialEq, Debug)]
-#[allow(missing_docs)]
-pub enum Color {
-    White,
-    Black,
-}
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+pub struct Color(bool); // using bool instead of u8 allows easier match statements and possibly further optimizations
 
 impl Color {
+    /// White
+    pub const WHITE: Self = Self(false);
+    /// White
+    pub const BLACK: Self = Self(true);
     /// Creates a `Color` from its english letter or returns `None`.
     ///
     /// # Examples
@@ -17,37 +17,41 @@ impl Color {
     /// ```
     /// use chers::Color;
     ///
-    /// assert_eq!(Color::from_char('W'), Some(Color::White));
-    /// assert_eq!(Color::from_char('w'), Some(Color::White));
-    /// assert_eq!(Color::from_char('B'), Some(Color::Black));
-    /// assert_eq!(Color::from_char('b'), Some(Color::Black));
+    /// assert_eq!(Color::from_char('W'), Some(Color::WHITE));
+    /// assert_eq!(Color::from_char('w'), Some(Color::WHITE));
+    /// assert_eq!(Color::from_char('B'), Some(Color::BLACK));
+    /// assert_eq!(Color::from_char('b'), Some(Color::BLACK));
     ///
     /// assert_eq!(Color::from_char('X'), None);
     /// ```
     pub fn from_char(c: char) -> Option<Self> {
         match c {
-            'w' | 'W' => Some(Color::White),
-            'b' | 'B' => Some(Color::Black),
+            'w' | 'W' => Some(Self::WHITE),
+            'b' | 'B' => Some(Self::BLACK),
             _ => None,
         }
     }
 
-    /// Returns `white` if `self == Color::White` and `black` if `self == Color::Black`
+    /// Returns `white` if `self == Color::WHITE` and `black` if `self == Color::BLACK`
     ///
     /// # Examples
     ///
     /// ```
     /// use chers::Color;
     ///
-    /// let color = Color::White;
+    /// let color = Color::WHITE;
     ///
     /// assert_eq!(color.map("white", "black"), "white");
     /// ```
     pub fn map<T>(self, white: T, black: T) -> T {
         match self {
-            Self::White => white,
-            Self::Black => black,
+            Self::WHITE => white,
+            Self::BLACK => black,
         }
+    }
+
+    pub(crate) fn to_usize(self) -> usize {
+        self.0 as usize
     }
 }
 
@@ -55,7 +59,7 @@ impl ops::Not for Color {
     type Output = Self;
 
     fn not(self) -> Self::Output {
-        self.map(Color::Black, Color::White)
+        self.map(Color::BLACK, Color::WHITE)
     }
 }
 

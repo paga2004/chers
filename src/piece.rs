@@ -1,20 +1,26 @@
 use crate::Color;
 use std::fmt;
-use std::ops::Index;
 
-/// A piece without a specific color.
+/// The type of a piece. Pawns are distinct by color because they have diffrent move-directions.
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
-#[allow(missing_docs)]
-pub enum PieceType {
-    Pawn,
-    Knight,
-    Bishop,
-    Rook,
-    Queen,
-    King,
-}
+pub struct PieceType(u8);
 
 impl PieceType {
+    pub(crate) const NIL: Self = Self(0);
+    /// White pawn
+    pub const PAWN_W: Self = Self(1);
+    /// Black pawn
+    pub const PAWN_B: Self = Self(2);
+    /// Knight
+    pub const KNIGHT: Self = Self(3);
+    /// Bishop
+    pub const BISHOP: Self = Self(4);
+    /// Rook
+    pub const ROOK: Self = Self(5);
+    /// Queen
+    pub const QUEEN: Self = Self(6);
+    /// King
+    pub const KING: Self = Self(7);
     /// Creates a `PieceType` from its english letter or returns `None`.
     ///
     /// # Examples
@@ -22,20 +28,20 @@ impl PieceType {
     /// ```
     /// use chers::PieceType;
     ///
-    /// assert_eq!(PieceType::from_char('K'), Some(PieceType::King));
-    /// assert_eq!(PieceType::from_char('N'), Some(PieceType::Knight));
-    /// assert_eq!(PieceType::from_char('n'), Some(PieceType::Knight));
-    ///
+    /// assert_eq!(PieceType::from_char('K'), Some(PieceType::KING));
+    /// assert_eq!(PieceType::from_char('N'), Some(PieceType::KNIGHT));
+    /// assert_eq!(PieceType::from_char('n'), Some(PieceType::KNIGHT));
     /// assert_eq!(PieceType::from_char('X'), None);
     /// ```
     pub fn from_char(c: char) -> Option<Self> {
         match c {
-            'p' | 'P' => Some(Self::Pawn),
-            'n' | 'N' => Some(Self::Knight),
-            'b' | 'B' => Some(Self::Bishop),
-            'r' | 'R' => Some(Self::Rook),
-            'q' | 'Q' => Some(Self::Queen),
-            'k' | 'K' => Some(Self::King),
+            'P' => Some(Self::PAWN_W),
+            'p' => Some(Self::PAWN_B),
+            'n' | 'N' => Some(Self::KNIGHT),
+            'b' | 'B' => Some(Self::BISHOP),
+            'r' | 'R' => Some(Self::ROOK),
+            'q' | 'Q' => Some(Self::QUEEN),
+            'k' | 'K' => Some(Self::KING),
             _ => None,
         }
     }
@@ -47,18 +53,22 @@ impl PieceType {
     /// ```
     /// use chers::PieceType;
     ///
-    /// assert_eq!(PieceType::Pawn.to_char(), 'p');
-    /// assert_eq!(PieceType::Knight.to_char(), 'n');
-    /// assert_eq!(PieceType::King.to_char(), 'k');
+    /// assert_eq!(PieceType::PAWN_W.to_char(), 'p');
+    /// assert_eq!(PieceType::KNIGHT.to_char(), 'n');
+    /// assert_eq!(PieceType::PAWN_W.to_char(), 'p');
+    /// assert_eq!(PieceType::KNIGHT.to_char(), 'n');
+    /// assert_eq!(PieceType::KING.to_char(), 'k');
     /// ```
     pub fn to_char(self) -> char {
         match self {
-            Self::Pawn => 'p',
-            Self::Knight => 'n',
-            Self::Bishop => 'b',
-            Self::Rook => 'r',
-            Self::Queen => 'q',
-            Self::King => 'k',
+            Self::PAWN_W | Self::PAWN_B => 'p',
+            Self::KNIGHT => 'n',
+            Self::BISHOP => 'b',
+            Self::ROOK => 'r',
+            Self::QUEEN => 'q',
+            Self::KING => 'k',
+            Self::NIL => ' ',
+            _ => unreachable!(),
         }
     }
 }
@@ -66,14 +76,6 @@ impl PieceType {
 impl fmt::Display for PieceType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.to_char())
-    }
-}
-
-impl<T> Index<PieceType> for [T; 6] {
-    type Output = T;
-
-    fn index(&self, index: PieceType) -> &Self::Output {
-        &self[index as usize]
     }
 }
 
@@ -97,18 +99,20 @@ impl Piece {
     /// ```
     /// use chers::{Piece, PieceType, Color};
     ///
-    /// assert_eq!(Piece::from_char('K'), Some(Piece::new(PieceType::King, Color::White)));
-    /// assert_eq!(Piece::from_char('N'), Some(Piece::new(PieceType::Knight, Color::White)));
-    /// assert_eq!(Piece::from_char('n'), Some(Piece::new(PieceType::Knight, Color::Black)));
+    /// assert_eq!(Piece::from_char('K'), Some(Piece::new(PieceType::KING, Color::WHITE)));
+    /// assert_eq!(Piece::from_char('N'), Some(Piece::new(PieceType::KNIGHT, Color::WHITE)));
+    /// assert_eq!(Piece::from_char('n'), Some(Piece::new(PieceType::KNIGHT, Color::BLACK)));
+    /// assert_eq!(Piece::from_char('N'), Some(Piece::new(PieceType::KNIGHT, Color::WHITE)));
+    /// assert_eq!(Piece::from_char('n'), Some(Piece::new(PieceType::KNIGHT, Color::BLACK)));
     ///
     /// assert_eq!(Piece::from_char('x'), None);
     /// ```
     pub fn from_char(c: char) -> Option<Self> {
         let piece_type = PieceType::from_char(c)?;
         let color = if c.is_ascii_uppercase() {
-            Color::White
+            Color::WHITE
         } else {
-            Color::Black
+            Color::BLACK
         };
         Some(Piece::new(piece_type, color))
     }
@@ -127,28 +131,10 @@ impl Piece {
 impl fmt::Display for Piece {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let symbol = self.piece_type.to_char();
-        if self.color == Color::White {
+        if self.color == Color::WHITE {
             write!(f, "{}", symbol.to_ascii_uppercase())
         } else {
             write!(f, "{}", symbol)
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use pretty_assertions::assert_eq;
-
-    use super::*;
-
-    #[test]
-    fn test_piece_type_index() {
-        let a = [1, 2, 3, 4, 5, 6];
-        assert_eq!(a[PieceType::Pawn], 1);
-        assert_eq!(a[PieceType::Knight], 2);
-        assert_eq!(a[PieceType::Bishop], 3);
-        assert_eq!(a[PieceType::Rook], 4);
-        assert_eq!(a[PieceType::Queen], 5);
-        assert_eq!(a[PieceType::King], 6);
     }
 }

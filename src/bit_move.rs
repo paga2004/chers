@@ -132,15 +132,15 @@ impl BitMove {
     }
 
     fn piece_to_code(piece: PieceType) -> u16 {
-        debug_assert_ne!(piece, PieceType::Pawn);
-        debug_assert_ne!(piece, PieceType::King);
-
         match piece {
-            PieceType::Knight => 0,
-            PieceType::Bishop => 1,
-            PieceType::Rook => 2,
+            PieceType::KNIGHT => 0,
+            PieceType::BISHOP => 1,
+            PieceType::ROOK => 2,
             // TODO: is this really better for performance?
-            _ => 3,
+            _ => {
+                debug_assert_eq!(piece, PieceType::QUEEN);
+                3
+            }
         }
     }
 
@@ -148,11 +148,11 @@ impl BitMove {
         debug_assert!(code < 4);
 
         match code {
-            0 => PieceType::Knight,
-            1 => PieceType::Bishop,
-            2 => PieceType::Rook,
+            0 => PieceType::KNIGHT,
+            1 => PieceType::BISHOP,
+            2 => PieceType::ROOK,
             // TODO: is this really better for performance?
-            _ => PieceType::Queen,
+            _ => PieceType::QUEEN,
         }
     }
 
@@ -254,16 +254,15 @@ mod tests {
     use super::*;
 
     use MoveFlags::*;
-    use PieceType::*;
     use Square::*;
 
     #[test_case(E2, E3, QuietMove)]
     #[test_case(E2, E4, DoublePawnPush)]
-    #[test_case(F7, F8, Promotion { piece: Knight, capture: false })]
-    #[test_case(F7, F8, Promotion { piece: Rook, capture: false })]
-    #[test_case(F7, F8, Promotion { piece: Bishop, capture: false })]
-    #[test_case(F7, F8, Promotion { piece: Queen, capture: false })]
-    #[test_case(F7, G8, Promotion { piece: Queen, capture: true })]
+    #[test_case(F7, F8, Promotion { piece: PieceType::KNIGHT, capture: false })]
+    #[test_case(F7, F8, Promotion { piece: PieceType::ROOK, capture: false })]
+    #[test_case(F7, F8, Promotion { piece: PieceType::BISHOP, capture: false })]
+    #[test_case(F7, F8, Promotion { piece: PieceType::QUEEN, capture: false })]
+    #[test_case(F7, G8, Promotion { piece: PieceType::QUEEN, capture: true })]
     #[test_case(C5, D4, Capture { en_passant: false })]
     #[test_case(D4, C3, Capture { en_passant: true })]
     #[test_case(E1, G1, Castle { kingside: true })]
@@ -352,10 +351,13 @@ mod tests {
             F8,
             Promotion {
                 capture: true,
-                piece: Queen,
+                piece: PieceType::QUEEN,
             },
         );
-        assert_eq!(expected, BitMove::new_promotion_capture(E7, F8, Queen));
+        assert_eq!(
+            expected,
+            BitMove::new_promotion_capture(E7, F8, PieceType::QUEEN)
+        );
     }
 
     #[test]
@@ -365,10 +367,10 @@ mod tests {
             E8,
             Promotion {
                 capture: false,
-                piece: Queen,
+                piece: PieceType::QUEEN,
             },
         );
-        assert_eq!(expected, BitMove::new_promotion(E7, E8, Queen));
+        assert_eq!(expected, BitMove::new_promotion(E7, E8, PieceType::QUEEN));
     }
 
     #[test]

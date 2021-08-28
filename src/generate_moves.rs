@@ -7,7 +7,7 @@ use crate::BitMove;
 use crate::Color;
 use crate::File;
 use crate::MoveList;
-use crate::PieceType::{self, *};
+use crate::PieceType;
 use crate::Position;
 use crate::Rank;
 use crate::Square::{self, *};
@@ -32,17 +32,33 @@ impl Position {
     }
 
     fn add_promotion_capture(&self, moves: &mut MoveList, origin: Square, target: Square) {
-        moves.push(BitMove::new_promotion_capture(origin, target, Queen));
-        moves.push(BitMove::new_promotion_capture(origin, target, Rook));
-        moves.push(BitMove::new_promotion_capture(origin, target, Bishop));
-        moves.push(BitMove::new_promotion_capture(origin, target, Knight));
+        moves.push(BitMove::new_promotion_capture(
+            origin,
+            target,
+            PieceType::QUEEN,
+        ));
+        moves.push(BitMove::new_promotion_capture(
+            origin,
+            target,
+            PieceType::ROOK,
+        ));
+        moves.push(BitMove::new_promotion_capture(
+            origin,
+            target,
+            PieceType::BISHOP,
+        ));
+        moves.push(BitMove::new_promotion_capture(
+            origin,
+            target,
+            PieceType::KNIGHT,
+        ));
     }
 
     fn add_promotion(&self, moves: &mut MoveList, origin: Square, target: Square) {
-        moves.push(BitMove::new_promotion(origin, target, PieceType::Queen));
-        moves.push(BitMove::new_promotion(origin, target, PieceType::Rook));
-        moves.push(BitMove::new_promotion(origin, target, PieceType::Bishop));
-        moves.push(BitMove::new_promotion(origin, target, PieceType::Knight));
+        moves.push(BitMove::new_promotion(origin, target, PieceType::QUEEN));
+        moves.push(BitMove::new_promotion(origin, target, PieceType::ROOK));
+        moves.push(BitMove::new_promotion(origin, target, PieceType::BISHOP));
+        moves.push(BitMove::new_promotion(origin, target, PieceType::KNIGHT));
     }
 
     fn add_castle_kingside(&self, moves: &mut MoveList, origin: Square, target: Square) {
@@ -70,7 +86,6 @@ impl Position {
     /// assert!(moves.iter().all(|m| *m != m2));
     /// ```
     pub fn generate_legal_moves(&mut self) -> MoveList {
-        // FIXME: This is really slow.
         self.generate_pseudo_legal_moves()
             .into_iter()
             .filter(|candidate| {
@@ -91,56 +106,91 @@ impl Position {
                 if let BoardState::Piece(piece) = self.pieces[square] {
                     if piece.is_color(self.side_to_move) {
                         match piece.piece_type {
-                            PieceType::Pawn => {
-                                self.generate_pawn_moves(&mut moves, square);
+                            PieceType::PAWN_W => {
+                                self.generate_white_pawn_moves(&mut moves, square);
                             }
-                            PieceType::Knight => {
+                            PieceType::PAWN_B => {
+                                self.generate_black_pawn_moves(&mut moves, square);
+                            }
+                            PieceType::KNIGHT => {
                                 self.generate_knight_moves(&mut moves, square);
                             }
-                            PieceType::Bishop => {
+                            PieceType::BISHOP => {
                                 self.generate_bishop_moves(&mut moves, square);
                             }
-                            PieceType::Rook => {
+                            PieceType::ROOK => {
                                 self.generate_rook_moves(&mut moves, square);
                             }
-                            PieceType::Queen => {
+                            PieceType::QUEEN => {
                                 self.generate_bishop_moves(&mut moves, square);
                                 self.generate_rook_moves(&mut moves, square);
                             }
-                            PieceType::King => {
+                            PieceType::KING => {
                                 self.generate_king_moves(&mut moves, square);
                             }
+                            _ => unreachable!(),
                         }
                     }
                 }
             }
         }
         self.generate_castling_moves(&mut moves);
-        self.generate_en_passant_moves(&mut moves);
+        if self.side_to_move == Color::WHITE {
+            self.generate_en_passant_moves_white(&mut moves);
+        } else {
+            self.generate_en_passant_moves_black(&mut moves);
+        }
 
         moves
     }
 
-    fn generate_pawn_moves(&self, moves: &mut MoveList, origin: Square) {
+    fn generate_white_pawn_moves(&self, moves: &mut MoveList, origin: Square) {
         let index = origin as usize;
-        let offset;
-        let starting_rank;
-        let promotion_rank;
-        let capture_offsets;
-        match self.side_to_move {
-            Color::White => {
-                offset = WHITE_PAWN_OFFSET;
-                capture_offsets = WHITE_PAWN_CAPTURE_OFFSETS;
-                starting_rank = origin.rank() == Rank::Second;
-                promotion_rank = origin.rank() == Rank::Seventh;
-            }
-            Color::Black => {
-                offset = BLACK_PAWN_OFFSET;
-                capture_offsets = BLACK_PAWN_CAPTURE_OFFSETS;
-                starting_rank = origin.rank() == Rank::Seventh;
-                promotion_rank = origin.rank() == Rank::Second;
+        let offset = WHITE_PAWN_OFFSET;
+        let capture_offsets = WHITE_PAWN_CAPTURE_OFFSETS;
+        let starting_rank = origin.rank() == Rank::Second;
+        let promotion_rank = origin.rank() == Rank::Seventh;
+
+        // captures
+        for offset in &capture_offsets {
+            let target = ((index as i8) + offset) as usize;
+            match self.pieces[target] {
+                BoardState::Piece(p) if p.is_color(!self.side_to_move) => {
+                    if promotion_rank {
+                        self.add_promotion_capture(moves, origin, Square::from_index(target));
+                    } else {
+                        self.add_capture(moves, origin, Square::from_index(target));
+                    }
+                }
+                _ => {}
             }
         }
+
+        // push
+        let target = Square::from_index(((index as i8) + offset) as usize);
+        if let BoardState::Empty = self.pieces[target] {
+            if promotion_rank {
+                self.add_promotion(moves, origin, target);
+            } else {
+                self.add_quiet(moves, origin, target);
+            }
+
+            // double push
+            if starting_rank {
+                let target = Square::from_index(((index as i8) + 2 * offset) as usize);
+                if let BoardState::Empty = self.pieces[target] {
+                    self.add_double_pawn_push(moves, origin, target);
+                }
+            }
+        }
+    }
+
+    fn generate_black_pawn_moves(&self, moves: &mut MoveList, origin: Square) {
+        let index = origin as usize;
+        let offset = BLACK_PAWN_OFFSET;
+        let capture_offsets = BLACK_PAWN_CAPTURE_OFFSETS;
+        let starting_rank = origin.rank() == Rank::Seventh;
+        let promotion_rank = origin.rank() == Rank::Second;
 
         // captures
         for offset in &capture_offsets {
@@ -243,7 +293,7 @@ impl Position {
     fn generate_castling_moves(&self, moves: &mut MoveList) {
         // TODO: dry
         match self.side_to_move {
-            Color::White => {
+            Color::WHITE => {
                 if self.state.castling_rights.white_king_side {
                     // NOTE: Might be faster to check first if both squares are empty since that is
                     // just a lookup.
@@ -267,7 +317,7 @@ impl Position {
                     }
                 }
             }
-            Color::Black => {
+            Color::BLACK => {
                 if self.state.castling_rights.black_king_side {
                     // NOTE: Might be faster to check first if both squares are empty since that is
                     // just a lookup.
@@ -298,16 +348,27 @@ impl Position {
         self.pieces[sq] == BoardState::Empty && !self.is_attacked(sq, !self.side_to_move)
     }
 
-    fn generate_en_passant_moves(&self, moves: &mut MoveList) {
+    fn generate_en_passant_moves_white(&self, moves: &mut MoveList) {
         if let Some(sq) = self.state.ep_square {
             // The offset is added to the target square. That's why it's the other way around.
-            for offset in &self
-                .side_to_move
-                .map(BLACK_PAWN_CAPTURE_OFFSETS, WHITE_PAWN_CAPTURE_OFFSETS)
-            {
+            for offset in BLACK_PAWN_CAPTURE_OFFSETS {
                 let target = (sq as i8 + offset) as usize;
                 if let BoardState::Piece(p) = self.pieces[target] {
-                    if p.is_color(self.side_to_move) && p.is_type(PieceType::Pawn) {
+                    if p.is_color(self.side_to_move) && p.is_type(PieceType::PAWN_W) {
+                        self.add_en_passant(moves, Square::from_index(target), sq);
+                    }
+                }
+            }
+        }
+    }
+
+    fn generate_en_passant_moves_black(&self, moves: &mut MoveList) {
+        if let Some(sq) = self.state.ep_square {
+            // The offset is added to the target square. That's why it's the other way around.
+            for offset in WHITE_PAWN_CAPTURE_OFFSETS {
+                let target = (sq as i8 + offset) as usize;
+                if let BoardState::Piece(p) = self.pieces[target] {
+                    if p.is_type(PieceType::PAWN_B) {
                         self.add_en_passant(moves, Square::from_index(target), sq);
                     }
                 }
