@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use crate::position::BoardState;
 use crate::position_state::PositionState;
 use crate::Color;
 use crate::File;
@@ -51,10 +50,8 @@ impl Position {
         for i in 0..8 {
             for j in 0..8 {
                 sq = Square::new(File::new(i), Rank::new(j));
-                if let BoardState::Piece(p) = pieces[sq] {
-                    if p.is_type(PieceType::KING) {
-                        king_square[p.color.to_usize()] = sq;
-                    }
+                if pieces[sq].is_type(PieceType::KING) {
+                    king_square[pieces[sq].color().to_usize()] = sq;
                 }
             }
         }
@@ -75,9 +72,9 @@ impl Position {
 }
 
 // TODO: Rewrite this function
-fn parse_pieces(s: &str) -> Result<[BoardState; 120], ParseFenError<'_>> {
+fn parse_pieces(s: &str) -> Result<[Piece; 120], ParseFenError<'_>> {
     let mut chars = s.chars();
-    let mut pieces = [BoardState::OffBoard; 120];
+    let mut pieces = [Piece::OFF_BOARD; 120];
 
     let mut rank = 7;
     let mut file = 0;
@@ -96,7 +93,7 @@ fn parse_pieces(s: &str) -> Result<[BoardState; 120], ParseFenError<'_>> {
                     return Err(ParseFenError::WrongNumberOfFiles);
                 }
                 for _ in 0..c.to_digit(10).unwrap() {
-                    pieces[Square::new(File::new(file), Rank::new(rank))] = BoardState::Empty;
+                    pieces[Square::new(File::new(file), Rank::new(rank))] = Piece::EMPTY;
                     file += 1;
                 }
                 continue;
@@ -107,7 +104,7 @@ fn parse_pieces(s: &str) -> Result<[BoardState; 120], ParseFenError<'_>> {
                     return Err(ParseFenError::WrongNumberOfFiles);
                 }
                 let piece = Piece::from_char(c).ok_or(ParseFenError::InvalidPiece(c))?;
-                pieces[Square::new(File::new(file), Rank::new(rank))] = BoardState::Piece(piece);
+                pieces[Square::new(File::new(file), Rank::new(rank))] = piece;
                 file += 1;
             }
         }
@@ -329,15 +326,13 @@ mod tests {
         ply: u16,
     ) {
         let bytes: Vec<&[u8]> = pieces.iter().map(|s| s.as_bytes()).collect();
-        let mut piece_array = [BoardState::OffBoard; 120];
+        let mut piece_array = [Piece::OFF_BOARD; 120];
         for i in 0..12 {
             for j in 0..10 {
                 piece_array[10 * i + j] = match bytes[i][j] {
-                    b'-' => BoardState::OffBoard,
-                    b' ' => BoardState::Empty,
-                    other => {
-                        BoardState::Piece(Piece::from_char(other as char).expect("valid piece"))
-                    }
+                    b'-' => Piece::OFF_BOARD,
+                    b' ' => Piece::EMPTY,
+                    other => Piece::from_char(other as char).expect("valid piece"),
                 }
             }
         }
@@ -346,10 +341,8 @@ mod tests {
         for i in 0..8 {
             for j in 0..8 {
                 sq = Square::new(File::new(i), Rank::new(j));
-                if let BoardState::Piece(p) = piece_array[sq] {
-                    if p.is_type(PieceType::KING) {
-                        king_square[p.color.to_usize()] = sq;
-                    }
+                if piece_array[sq].is_type(PieceType::KING) {
+                    king_square[piece_array[sq].color().to_usize()] = sq;
                 }
             }
         }

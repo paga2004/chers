@@ -9,7 +9,7 @@ pub fn perft(pos: &mut Position, depth: u16) -> u64 {
             let mut count = 0;
 
             for m in pos.generate_legal_moves() {
-                pos.make_bit_move(&m);
+                pos.make_bit_move(m);
                 count += perft(pos, depth - 1);
                 pos.undo_move();
             }
@@ -32,7 +32,7 @@ mod tests {
             return result;
         }
         for m in pos.generate_legal_moves() {
-            pos.make_bit_move(&m);
+            pos.make_bit_move(m);
             result.push_str(&format!("{}: {}\n", m, perft(pos, depth - 1)));
             pos.undo_move();
         }

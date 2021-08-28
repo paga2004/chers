@@ -21,18 +21,10 @@ pub(crate) const BISHOP_OFFSETS: [i8; 4] = [-11, -9, 9, 11];
 pub(crate) const ROOK_OFFSETS: [i8; 4] = [-10, -1, 1, 10];
 pub(crate) const KING_OFFSETS: [i8; 8] = [-11, -10, -9, -1, 1, 9, 10, 11];
 
-// TODO: remove this
-#[derive(Clone, Copy, PartialEq, Debug)]
-pub(crate) enum BoardState {
-    OffBoard,
-    Empty,
-    Piece(Piece),
-}
-
 /// A chess position.
 #[derive(Clone)]
 pub struct Position {
-    pub(crate) pieces: [BoardState; 120],
+    pub(crate) pieces: [Piece; 120],
     pub(crate) king_square: [Square; 2],
     pub(crate) side_to_move: Color,
     pub(crate) ply: u16,
@@ -53,7 +45,7 @@ impl Position {
     pub fn make_move(&mut self, m: ParsedMove) -> bool {
         let legal_moves = self.generate_legal_moves();
         if let Some(bit_move) = legal_moves.iter().find(|bm| *bm == &m) {
-            self.make_bit_move(bit_move);
+            self.make_bit_move(*bit_move);
             true
         } else {
             false
@@ -66,139 +58,139 @@ impl Position {
     ///
     /// This should only be called if the move is legal. For a safer function see
     /// [`Position::make_move`], which takes a [`ParsedMove`] instead.
-    pub fn make_bit_move(&mut self, m: &BitMove) {
+    pub fn make_bit_move(&mut self, m: BitMove) {
         let state = &self.state;
-        if let BoardState::Piece(p) = self.pieces[m.origin()] {
-            self.side_to_move = !self.side_to_move;
-            self.ply += 1;
-            let halfmove_clock =
-                if m.is_capture() || p.is_type(PieceType::PAWN_W) || p.is_type(PieceType::PAWN_B) {
-                    0
-                } else {
-                    state.halfmove_clock + 1
-                };
-            let mut castling_rights = state.castling_rights;
-            let ep_square = if m.is_double_push() {
-                Some(Square::new(
-                    m.target().file(),
-                    p.color.map(Rank::Third, Rank::Sixth),
-                ))
+        let p = self.pieces[m.origin()];
+        debug_assert!(p != Piece::EMPTY);
+        debug_assert!(p != Piece::OFF_BOARD);
+        self.side_to_move = !self.side_to_move;
+        self.ply += 1;
+        let halfmove_clock =
+            if m.is_capture() || p.is_type(PieceType::PAWN_W) || p.is_type(PieceType::PAWN_B) {
+                0
             } else {
-                None
+                state.halfmove_clock + 1
             };
+        let mut castling_rights = state.castling_rights;
+        let ep_square = if m.is_double_push() {
+            Some(Square::new(
+                m.target().file(),
+                p.color().map(Rank::Third, Rank::Sixth),
+            ))
+        } else {
+            None
+        };
 
-            // en passent
-            let capture_field = if m.is_en_passant() {
-                if p.color == Color::WHITE {
-                    Square::new(m.target().file(), m.target().rank() - 1)
-                } else {
-                    Square::new(m.target().file(), m.target().rank() + 1)
-                }
+        // en passent
+        let capture_field = if m.is_en_passant() {
+            if p.is_color(Color::WHITE) {
+                Square::new(m.target().file(), m.target().rank() - 1)
             } else {
-                m.target()
-            };
-
-            // TODO: simplify
-            let captured_piece = if m.is_capture() {
-                if let BoardState::Piece(p) = self.pieces[capture_field] {
-                    Some(p)
-                } else {
-                    None
-                }
-            } else {
-                None
-            };
-
-            // promotion
-            let piece = if m.is_promotion() {
-                Piece::new(m.promotion_piece(), p.color)
-            } else {
-                p
-            };
-
-            // castling rights
-            // TODO: Use a castling mask for this
-            let mut remove_castling_rights = |sq| match sq {
-                Square::A1 => {
-                    castling_rights.white_queen_side = false;
-                }
-                Square::E1 => {
-                    castling_rights.white_queen_side = false;
-                    castling_rights.white_king_side = false;
-                }
-                Square::H1 => {
-                    castling_rights.white_king_side = false;
-                }
-
-                Square::A8 => {
-                    castling_rights.black_queen_side = false;
-                }
-                Square::E8 => {
-                    castling_rights.black_queen_side = false;
-                    castling_rights.black_king_side = false;
-                }
-                Square::H8 => {
-                    castling_rights.black_king_side = false;
-                }
-
-                _ => {}
-            };
-            remove_castling_rights(m.origin());
-            remove_castling_rights(m.target());
-
-            self.state = Arc::new(PositionState {
-                castling_rights,
-                ep_square,
-                halfmove_clock,
-                prev_move: Some(*m),
-                captured_piece,
-                prev_state: Some(state.clone()),
-            });
-
-            if m.origin() == self.king_square[(!self.side_to_move).to_usize()] {
-                self.king_square[(!self.side_to_move).to_usize()] = m.target();
+                Square::new(m.target().file(), m.target().rank() + 1)
             }
-            // white castling
-            match p.color {
-                Color::WHITE => {
-                    if m.is_king_side_castle() {
-                        self.pieces[Square::F1] = self.pieces[Square::H1];
-                        self.pieces[Square::G1] = BoardState::Piece(p);
-                        self.pieces[Square::E1] = BoardState::Empty;
-                        self.pieces[Square::H1] = BoardState::Empty;
-                        return;
-                    }
-                    if m.is_queen_side_castle() {
-                        self.pieces[Square::D1] = self.pieces[Square::A1];
-                        self.pieces[Square::C1] = BoardState::Piece(p);
-                        self.pieces[Square::E1] = BoardState::Empty;
-                        self.pieces[Square::A1] = BoardState::Empty;
-                        return;
-                    }
-                }
-                Color::BLACK => {
-                    if m.is_king_side_castle() {
-                        self.pieces[Square::F8] = self.pieces[Square::H8];
-                        self.pieces[Square::G8] = BoardState::Piece(p);
-                        self.pieces[Square::E8] = BoardState::Empty;
-                        self.pieces[Square::H8] = BoardState::Empty;
-                        return;
-                    }
-                    if m.is_queen_side_castle() {
-                        self.pieces[Square::D8] = self.pieces[Square::A8];
-                        self.pieces[Square::C8] = BoardState::Piece(p);
-                        self.pieces[Square::E8] = BoardState::Empty;
-                        self.pieces[Square::A8] = BoardState::Empty;
-                        return;
-                    }
-                }
+        } else {
+            m.target()
+        };
+
+        // TODO: simplify
+        let captured_piece = if m.is_capture() {
+            let p = self.pieces[capture_field];
+            debug_assert!(p != Piece::EMPTY);
+            debug_assert!(p != Piece::OFF_BOARD);
+            p
+        } else {
+            Piece::EMPTY
+        };
+
+        // promotion
+        let piece = if m.is_promotion() {
+            Piece::new(m.promotion_piece(), p.color())
+        } else {
+            p
+        };
+
+        // castling rights
+        // TODO: Use a castling mask for this
+        let mut remove_castling_rights = |sq| match sq {
+            Square::A1 => {
+                castling_rights.white_queen_side = false;
+            }
+            Square::E1 => {
+                castling_rights.white_queen_side = false;
+                castling_rights.white_king_side = false;
+            }
+            Square::H1 => {
+                castling_rights.white_king_side = false;
             }
 
-            // normal move
-            self.pieces[capture_field] = BoardState::Empty;
-            self.pieces[m.target()] = BoardState::Piece(piece);
-            self.pieces[m.origin()] = BoardState::Empty;
+            Square::A8 => {
+                castling_rights.black_queen_side = false;
+            }
+            Square::E8 => {
+                castling_rights.black_queen_side = false;
+                castling_rights.black_king_side = false;
+            }
+            Square::H8 => {
+                castling_rights.black_king_side = false;
+            }
+
+            _ => {}
+        };
+        remove_castling_rights(m.origin());
+        remove_castling_rights(m.target());
+
+        self.state = Arc::new(PositionState {
+            castling_rights,
+            ep_square,
+            halfmove_clock,
+            prev_move: m,
+            captured_piece,
+            prev_state: Some(state.clone()),
+        });
+
+        if m.origin() == self.king_square[(!self.side_to_move).to_usize()] {
+            self.king_square[(!self.side_to_move).to_usize()] = m.target();
         }
+        // white castling
+        match p.color() {
+            Color::WHITE => {
+                if m.is_king_side_castle() {
+                    self.pieces[Square::F1] = self.pieces[Square::H1];
+                    self.pieces[Square::G1] = p;
+                    self.pieces[Square::E1] = Piece::EMPTY;
+                    self.pieces[Square::H1] = Piece::EMPTY;
+                    return;
+                }
+                if m.is_queen_side_castle() {
+                    self.pieces[Square::D1] = self.pieces[Square::A1];
+                    self.pieces[Square::C1] = p;
+                    self.pieces[Square::E1] = Piece::EMPTY;
+                    self.pieces[Square::A1] = Piece::EMPTY;
+                    return;
+                }
+            }
+            Color::BLACK => {
+                if m.is_king_side_castle() {
+                    self.pieces[Square::F8] = self.pieces[Square::H8];
+                    self.pieces[Square::G8] = p;
+                    self.pieces[Square::E8] = Piece::EMPTY;
+                    self.pieces[Square::H8] = Piece::EMPTY;
+                    return;
+                }
+                if m.is_queen_side_castle() {
+                    self.pieces[Square::D8] = self.pieces[Square::A8];
+                    self.pieces[Square::C8] = p;
+                    self.pieces[Square::E8] = Piece::EMPTY;
+                    self.pieces[Square::A8] = Piece::EMPTY;
+                    return;
+                }
+            }
+        }
+
+        // normal move
+        self.pieces[capture_field] = Piece::EMPTY;
+        self.pieces[m.target()] = piece;
+        self.pieces[m.origin()] = Piece::EMPTY;
     }
 
     /// Undoes the last played move.
@@ -209,72 +201,71 @@ impl Position {
     pub fn undo_move(&mut self) {
         self.side_to_move = !self.side_to_move;
         self.ply -= 1;
-        let m = self.state.prev_move.unwrap();
-        if let BoardState::Piece(p) = self.pieces[m.target()] {
-            let capture_field = if m.is_en_passant() {
-                if self.side_to_move == Color::WHITE {
-                    Square::new(m.target().file(), m.target().rank() - 1)
-                } else {
-                    Square::new(m.target().file(), m.target().rank() + 1)
-                }
-            } else {
-                m.target()
-            };
+        let m = self.state.prev_move;
+        debug_assert!(m != BitMove::NULL);
+        let p = self.pieces[m.target()];
+        debug_assert!(p != Piece::EMPTY);
+        debug_assert!(p != Piece::OFF_BOARD);
 
-            let piece = if m.is_promotion() {
-                Piece::new(p.color.map(PieceType::PAWN_W, PieceType::PAWN_B), p.color)
-            } else {
-                p
-            };
-            let captured_piece = match self.state.captured_piece {
-                Some(p) => BoardState::Piece(p),
-                None => BoardState::Empty,
-            };
-            if m.target() == self.king_square[self.side_to_move.to_usize()] {
-                self.king_square[self.side_to_move.to_usize()] = m.origin();
-            }
+        let capture_field = if m.is_en_passant() {
+            self.side_to_move.map(
+                Square::new(m.target().file(), m.target().rank() - 1),
+                Square::new(m.target().file(), m.target().rank() + 1),
+            )
+        } else {
+            m.target()
+        };
 
-            self.state = self.state.prev_state.as_ref().unwrap().clone();
-
-            // castling
-            match p.color {
-                Color::WHITE => {
-                    if m.is_king_side_castle() {
-                        self.pieces[Square::H1] = self.pieces[Square::F1];
-                        self.pieces[Square::E1] = BoardState::Piece(p);
-                        self.pieces[Square::F1] = BoardState::Empty;
-                        self.pieces[Square::G1] = BoardState::Empty;
-                        return;
-                    }
-                    if m.is_queen_side_castle() {
-                        self.pieces[Square::A1] = self.pieces[Square::D1];
-                        self.pieces[Square::E1] = BoardState::Piece(p);
-                        self.pieces[Square::C1] = BoardState::Empty;
-                        self.pieces[Square::D1] = BoardState::Empty;
-                        return;
-                    }
-                }
-                Color::BLACK => {
-                    if m.is_king_side_castle() {
-                        self.pieces[Square::H8] = self.pieces[Square::F8];
-                        self.pieces[Square::E8] = BoardState::Piece(p);
-                        self.pieces[Square::F8] = BoardState::Empty;
-                        self.pieces[Square::G8] = BoardState::Empty;
-                        return;
-                    }
-                    if m.is_queen_side_castle() {
-                        self.pieces[Square::A8] = self.pieces[Square::D8];
-                        self.pieces[Square::E8] = BoardState::Piece(p);
-                        self.pieces[Square::C8] = BoardState::Empty;
-                        self.pieces[Square::D8] = BoardState::Empty;
-                        return;
-                    }
-                }
-            }
-            self.pieces[m.target()] = BoardState::Empty;
-            self.pieces[m.origin()] = BoardState::Piece(piece);
-            self.pieces[capture_field] = captured_piece;
+        let piece = if m.is_promotion() {
+            p.color().map(Piece::W_PAWN, Piece::B_PAWN)
+        } else {
+            p
+        };
+        let captured_piece = self.state.captured_piece;
+        if m.target() == self.king_square[self.side_to_move.to_usize()] {
+            self.king_square[self.side_to_move.to_usize()] = m.origin();
         }
+
+        self.state = self.state.prev_state.as_ref().unwrap().clone();
+
+        // castling
+        match p.color() {
+            Color::WHITE => {
+                if m.is_king_side_castle() {
+                    self.pieces[Square::H1] = self.pieces[Square::F1];
+                    self.pieces[Square::E1] = p;
+                    self.pieces[Square::F1] = Piece::EMPTY;
+                    self.pieces[Square::G1] = Piece::EMPTY;
+                    return;
+                }
+                if m.is_queen_side_castle() {
+                    self.pieces[Square::A1] = self.pieces[Square::D1];
+                    self.pieces[Square::E1] = p;
+                    self.pieces[Square::C1] = Piece::EMPTY;
+                    self.pieces[Square::D1] = Piece::EMPTY;
+                    return;
+                }
+            }
+            Color::BLACK => {
+                if m.is_king_side_castle() {
+                    self.pieces[Square::H8] = self.pieces[Square::F8];
+                    self.pieces[Square::E8] = p;
+                    self.pieces[Square::F8] = Piece::EMPTY;
+                    self.pieces[Square::G8] = Piece::EMPTY;
+                    return;
+                }
+                if m.is_queen_side_castle() {
+                    self.pieces[Square::A8] = self.pieces[Square::D8];
+                    self.pieces[Square::E8] = p;
+                    self.pieces[Square::C8] = Piece::EMPTY;
+                    self.pieces[Square::D8] = Piece::EMPTY;
+                    return;
+                }
+            }
+        }
+        self.pieces[m.target()] = Piece::EMPTY;
+        self.pieces[m.origin()] = piece;
+        self.pieces[capture_field] = captured_piece;
     }
 }
 
@@ -321,11 +312,7 @@ impl fmt::Display for Position {
             for j in 0..8 {
                 let file = File::new(j);
                 write!(f, " ")?;
-                if let BoardState::Piece(piece) = self.pieces[Square::new(file, rank)] {
-                    write!(f, "{}", piece)?;
-                } else {
-                    write!(f, " ")?;
-                }
+                write!(f, "{}", self.pieces[Square::new(file, rank)])?;
                 write!(f, " │")?;
             }
             if i > 0 {

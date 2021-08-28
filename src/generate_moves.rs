@@ -1,4 +1,3 @@
-use crate::position::BoardState;
 use crate::position::{
     BISHOP_OFFSETS, BLACK_PAWN_CAPTURE_OFFSETS, BLACK_PAWN_OFFSET, KING_OFFSETS, KNIGHT_OFFSETS,
     ROOK_OFFSETS, WHITE_PAWN_CAPTURE_OFFSETS, WHITE_PAWN_OFFSET,
@@ -7,6 +6,7 @@ use crate::BitMove;
 use crate::Color;
 use crate::File;
 use crate::MoveList;
+use crate::Piece;
 use crate::PieceType;
 use crate::Position;
 use crate::Rank;
@@ -89,7 +89,7 @@ impl Position {
         self.generate_pseudo_legal_moves()
             .into_iter()
             .filter(|candidate| {
-                self.make_bit_move(candidate);
+                self.make_bit_move(*candidate);
                 let result = !self.in_check(!self.side_to_move);
                 self.undo_move();
                 result
@@ -103,33 +103,32 @@ impl Position {
         for i in 0..8 {
             for j in 0..8 {
                 let square = Square::new(File::new(i), Rank::new(j));
-                if let BoardState::Piece(piece) = self.pieces[square] {
-                    if piece.is_color(self.side_to_move) {
-                        match piece.piece_type {
-                            PieceType::PAWN_W => {
-                                self.generate_white_pawn_moves(&mut moves, square);
-                            }
-                            PieceType::PAWN_B => {
-                                self.generate_black_pawn_moves(&mut moves, square);
-                            }
-                            PieceType::KNIGHT => {
-                                self.generate_knight_moves(&mut moves, square);
-                            }
-                            PieceType::BISHOP => {
-                                self.generate_bishop_moves(&mut moves, square);
-                            }
-                            PieceType::ROOK => {
-                                self.generate_rook_moves(&mut moves, square);
-                            }
-                            PieceType::QUEEN => {
-                                self.generate_bishop_moves(&mut moves, square);
-                                self.generate_rook_moves(&mut moves, square);
-                            }
-                            PieceType::KING => {
-                                self.generate_king_moves(&mut moves, square);
-                            }
-                            _ => unreachable!(),
+                let piece = self.pieces[square];
+                if piece.is_color(self.side_to_move) {
+                    match piece.piece_type() {
+                        PieceType::PAWN_W => {
+                            self.generate_white_pawn_moves(&mut moves, square);
                         }
+                        PieceType::PAWN_B => {
+                            self.generate_black_pawn_moves(&mut moves, square);
+                        }
+                        PieceType::KNIGHT => {
+                            self.generate_knight_moves(&mut moves, square);
+                        }
+                        PieceType::BISHOP => {
+                            self.generate_bishop_moves(&mut moves, square);
+                        }
+                        PieceType::ROOK => {
+                            self.generate_rook_moves(&mut moves, square);
+                        }
+                        PieceType::QUEEN => {
+                            self.generate_bishop_moves(&mut moves, square);
+                            self.generate_rook_moves(&mut moves, square);
+                        }
+                        PieceType::KING => {
+                            self.generate_king_moves(&mut moves, square);
+                        }
+                        _ => {}
                     }
                 }
             }
@@ -154,21 +153,18 @@ impl Position {
         // captures
         for offset in &capture_offsets {
             let target = ((index as i8) + offset) as usize;
-            match self.pieces[target] {
-                BoardState::Piece(p) if p.is_color(!self.side_to_move) => {
-                    if promotion_rank {
-                        self.add_promotion_capture(moves, origin, Square::from_index(target));
-                    } else {
-                        self.add_capture(moves, origin, Square::from_index(target));
-                    }
+            if self.pieces[target].is_color(!self.side_to_move) {
+                if promotion_rank {
+                    self.add_promotion_capture(moves, origin, Square::from_index(target));
+                } else {
+                    self.add_capture(moves, origin, Square::from_index(target));
                 }
-                _ => {}
             }
         }
 
         // push
         let target = Square::from_index(((index as i8) + offset) as usize);
-        if let BoardState::Empty = self.pieces[target] {
+        if self.pieces[target] == Piece::EMPTY {
             if promotion_rank {
                 self.add_promotion(moves, origin, target);
             } else {
@@ -178,7 +174,7 @@ impl Position {
             // double push
             if starting_rank {
                 let target = Square::from_index(((index as i8) + 2 * offset) as usize);
-                if let BoardState::Empty = self.pieces[target] {
+                if self.pieces[target] == Piece::EMPTY {
                     self.add_double_pawn_push(moves, origin, target);
                 }
             }
@@ -195,21 +191,18 @@ impl Position {
         // captures
         for offset in &capture_offsets {
             let target = ((index as i8) + offset) as usize;
-            match self.pieces[target] {
-                BoardState::Piece(p) if p.is_color(!self.side_to_move) => {
-                    if promotion_rank {
-                        self.add_promotion_capture(moves, origin, Square::from_index(target));
-                    } else {
-                        self.add_capture(moves, origin, Square::from_index(target));
-                    }
+            if self.pieces[target].is_piece() && self.pieces[target].is_color(!self.side_to_move) {
+                if promotion_rank {
+                    self.add_promotion_capture(moves, origin, Square::from_index(target));
+                } else {
+                    self.add_capture(moves, origin, Square::from_index(target));
                 }
-                _ => {}
             }
         }
 
         // push
         let target = Square::from_index(((index as i8) + offset) as usize);
-        if let BoardState::Empty = self.pieces[target] {
+        if self.pieces[target] == Piece::EMPTY {
             if promotion_rank {
                 self.add_promotion(moves, origin, target);
             } else {
@@ -219,7 +212,7 @@ impl Position {
             // double push
             if starting_rank {
                 let target = Square::from_index(((index as i8) + 2 * offset) as usize);
-                if let BoardState::Empty = self.pieces[target] {
+                if self.pieces[target] == Piece::EMPTY {
                     self.add_double_pawn_push(moves, origin, target);
                 }
             }
@@ -230,12 +223,10 @@ impl Position {
         for offset in &KNIGHT_OFFSETS {
             let target = (origin as i8 + offset) as usize;
             match self.pieces[target] {
-                BoardState::Piece(p) if p.is_color(self.side_to_move) => continue,
-                BoardState::Piece(_) => self.add_capture(moves, origin, Square::from_index(target)),
-                BoardState::OffBoard => continue,
-                BoardState::Empty => {
-                    self.add_quiet(moves, origin, Square::from_index(target));
-                }
+                Piece::EMPTY => self.add_quiet(moves, origin, Square::from_index(target)),
+                Piece::OFF_BOARD => continue,
+                p if p.is_color(self.side_to_move) => continue,
+                _ => self.add_capture(moves, origin, Square::from_index(target)),
             }
         }
     }
@@ -243,10 +234,10 @@ impl Position {
     fn generate_bishop_moves(&self, moves: &mut MoveList, origin: Square) {
         for offset in &BISHOP_OFFSETS {
             let mut target = (origin as i8 + offset) as usize;
-            let mut state = self.pieces[target];
-            while state != BoardState::OffBoard {
-                if let BoardState::Piece(p) = state {
-                    if p.is_color(!self.side_to_move) {
+            let mut piece = self.pieces[target];
+            while piece != Piece::OFF_BOARD {
+                if piece != Piece::EMPTY {
+                    if piece.is_color(!self.side_to_move) {
                         self.add_capture(moves, origin, Square::from_index(target));
                     }
                     break;
@@ -254,7 +245,7 @@ impl Position {
                 self.add_quiet(moves, origin, Square::from_index(target));
 
                 target = (target as i8 + offset) as usize;
-                state = self.pieces[target];
+                piece = self.pieces[target];
             }
         }
     }
@@ -262,10 +253,10 @@ impl Position {
     fn generate_rook_moves(&self, moves: &mut MoveList, origin: Square) {
         for offset in &ROOK_OFFSETS {
             let mut target = (origin as i8 + offset) as usize;
-            let mut state = self.pieces[target];
-            while state != BoardState::OffBoard {
-                if let BoardState::Piece(p) = state {
-                    if p.is_color(!self.side_to_move) {
+            let mut piece = self.pieces[target];
+            while piece != Piece::OFF_BOARD {
+                if piece != Piece::EMPTY {
+                    if piece.is_color(!self.side_to_move) {
                         self.add_capture(moves, origin, Square::from_index(target));
                     }
                     break;
@@ -273,7 +264,7 @@ impl Position {
                 self.add_quiet(moves, origin, Square::from_index(target));
 
                 target = (target as i8 + offset) as usize;
-                state = self.pieces[target];
+                piece = self.pieces[target];
             }
         }
     }
@@ -282,10 +273,10 @@ impl Position {
         for offset in &KING_OFFSETS {
             let target = (origin as i8 + offset) as usize;
             match self.pieces[target] {
-                BoardState::Piece(p) if p.is_color(self.side_to_move) => continue,
-                BoardState::Piece(_) => self.add_capture(moves, origin, Square::from_index(target)),
-                BoardState::OffBoard => continue,
-                BoardState::Empty => self.add_quiet(moves, origin, Square::from_index(target)),
+                Piece::EMPTY => self.add_quiet(moves, origin, Square::from_index(target)),
+                Piece::OFF_BOARD => continue,
+                p if p.is_color(self.side_to_move) => continue,
+                _ => self.add_capture(moves, origin, Square::from_index(target)),
             }
         }
     }
@@ -308,7 +299,7 @@ impl Position {
                     // NOTE: Might be faster to check first if all squares are empty since that is
                     // just a lookup.
 
-                    if self.pieces[B1] == BoardState::Empty
+                    if self.pieces[B1] == Piece::EMPTY
                         && self.is_empty_and_not_attacked(C1)
                         && self.is_empty_and_not_attacked(D1)
                         && !self.is_check()
@@ -332,7 +323,7 @@ impl Position {
                     // NOTE: Might be faster to check first if all squares are empty since that is
                     // just a lookup.
 
-                    if self.pieces[B8] == BoardState::Empty
+                    if self.pieces[B8] == Piece::EMPTY
                         && self.is_empty_and_not_attacked(C8)
                         && self.is_empty_and_not_attacked(D8)
                         && !self.is_check()
@@ -345,7 +336,7 @@ impl Position {
     }
 
     fn is_empty_and_not_attacked(&self, sq: Square) -> bool {
-        self.pieces[sq] == BoardState::Empty && !self.is_attacked(sq, !self.side_to_move)
+        self.pieces[sq] == Piece::EMPTY && !self.is_attacked(sq, !self.side_to_move)
     }
 
     fn generate_en_passant_moves_white(&self, moves: &mut MoveList) {
@@ -353,10 +344,8 @@ impl Position {
             // The offset is added to the target square. That's why it's the other way around.
             for offset in BLACK_PAWN_CAPTURE_OFFSETS {
                 let target = (sq as i8 + offset) as usize;
-                if let BoardState::Piece(p) = self.pieces[target] {
-                    if p.is_color(self.side_to_move) && p.is_type(PieceType::PAWN_W) {
-                        self.add_en_passant(moves, Square::from_index(target), sq);
-                    }
+                if self.pieces[target] == Piece::W_PAWN {
+                    self.add_en_passant(moves, Square::from_index(target), sq);
                 }
             }
         }
@@ -367,10 +356,8 @@ impl Position {
             // The offset is added to the target square. That's why it's the other way around.
             for offset in WHITE_PAWN_CAPTURE_OFFSETS {
                 let target = (sq as i8 + offset) as usize;
-                if let BoardState::Piece(p) = self.pieces[target] {
-                    if p.is_type(PieceType::PAWN_B) {
-                        self.add_en_passant(moves, Square::from_index(target), sq);
-                    }
+                if self.pieces[target] == Piece::B_PAWN {
+                    self.add_en_passant(moves, Square::from_index(target), sq);
                 }
             }
         }

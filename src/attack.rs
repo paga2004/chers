@@ -1,10 +1,9 @@
-use crate::position::BoardState;
 use crate::position::{
     BISHOP_OFFSETS, BLACK_PAWN_CAPTURE_OFFSETS, KING_OFFSETS, KNIGHT_OFFSETS, ROOK_OFFSETS,
     WHITE_PAWN_CAPTURE_OFFSETS,
 };
 use crate::Color;
-use crate::PieceType;
+use crate::Piece;
 use crate::Position;
 use crate::Square;
 
@@ -27,64 +26,64 @@ impl Position {
 
         // pawns
         for offset in &attacker.map(BLACK_PAWN_CAPTURE_OFFSETS, WHITE_PAWN_CAPTURE_OFFSETS) {
-            if let BoardState::Piece(p) = self.pieces[(index as i8 + offset) as usize] {
-                if p.is_type(attacker.map(PieceType::PAWN_W, PieceType::PAWN_B)) {
-                    return true;
-                }
+            if self.pieces[(index as i8 + offset) as usize]
+                == attacker.map(Piece::W_PAWN, Piece::B_PAWN)
+            {
+                return true;
             }
         }
 
         // knights
         for offset in &KNIGHT_OFFSETS {
-            if let BoardState::Piece(p) = self.pieces[(index as i8 + offset) as usize] {
-                if p.is_type(PieceType::KNIGHT) && p.is_color(attacker) {
-                    return true;
-                }
+            if self.pieces[(index as i8 + offset) as usize]
+                == attacker.map(Piece::W_KNIGHT, Piece::B_KNIGHT)
+            {
+                return true;
             }
         }
 
         // bishops and queens
         for offset in &BISHOP_OFFSETS {
             let mut target = (index as i8 + offset) as usize;
-            let mut state = self.pieces[target];
-            while state != BoardState::OffBoard {
-                if let BoardState::Piece(p) = state {
-                    if (p.is_type(PieceType::BISHOP) || p.is_type(PieceType::QUEEN))
-                        && p.is_color(attacker)
+            let mut piece = self.pieces[target];
+            while piece != Piece::OFF_BOARD {
+                if piece != Piece::EMPTY {
+                    if piece == attacker.map(Piece::W_BISHOP, Piece::B_BISHOP)
+                        || piece == attacker.map(Piece::W_QUEEN, Piece::B_QUEEN)
                     {
                         return true;
                     }
                     break;
                 }
                 target = (target as i8 + offset) as usize;
-                state = self.pieces[target];
+                piece = self.pieces[target];
             }
         }
 
         // rooks and queens
         for offset in &ROOK_OFFSETS {
             let mut target = (index as i8 + offset) as usize;
-            let mut state = self.pieces[target];
-            while state != BoardState::OffBoard {
-                if let BoardState::Piece(p) = state {
-                    if (p.is_type(PieceType::ROOK) || p.is_type(PieceType::QUEEN))
-                        && p.is_color(attacker)
+            let mut piece = self.pieces[target];
+            while piece != Piece::OFF_BOARD {
+                if piece != Piece::EMPTY {
+                    if piece == attacker.map(Piece::W_ROOK, Piece::B_ROOK)
+                        || piece == attacker.map(Piece::W_QUEEN, Piece::B_QUEEN)
                     {
                         return true;
                     }
                     break;
                 }
                 target = (target as i8 + offset) as usize;
-                state = self.pieces[target];
+                piece = self.pieces[target];
             }
         }
 
         // king
         for offset in &KING_OFFSETS {
-            if let BoardState::Piece(p) = self.pieces[(index as i8 + offset) as usize] {
-                if p.is_type(PieceType::KING) && p.is_color(attacker) {
-                    return true;
-                }
+            if self.pieces[(index as i8 + offset) as usize]
+                == attacker.map(Piece::W_KING, Piece::B_KING)
+            {
+                return true;
             }
         }
 

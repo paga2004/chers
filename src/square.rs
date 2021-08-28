@@ -1,5 +1,5 @@
 use crate::error::ParseSquareError;
-use crate::position::BoardState;
+use crate::Piece;
 use crate::{File, Rank};
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 use std::convert::TryFrom;
@@ -96,15 +96,15 @@ impl fmt::Display for Square {
     }
 }
 
-impl Index<Square> for [BoardState; 120] {
-    type Output = BoardState;
+impl Index<Square> for [Piece; 120] {
+    type Output = Piece;
 
     fn index(&self, index: Square) -> &Self::Output {
         &self[index as usize]
     }
 }
 
-impl IndexMut<Square> for [BoardState; 120] {
+impl IndexMut<Square> for [Piece; 120] {
     fn index_mut(&mut self, index: Square) -> &mut Self::Output {
         &mut self[index as usize]
     }

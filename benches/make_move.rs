@@ -17,7 +17,7 @@ fn make_move_100(c: &mut Criterion) {
             || data.clone(),
             |data| {
                 for (mut pos, m) in data {
-                    pos.make_bit_move(&m);
+                    pos.make_bit_move(m);
                     black_box(pos);
                 }
             },

@@ -71,6 +71,14 @@ impl PieceType {
             _ => unreachable!(),
         }
     }
+
+    pub(crate) fn from_u8(n: u8) -> Self {
+        Self(n)
+    }
+
+    pub(crate) const fn to_u8(self) -> u8 {
+        self.0 as u8
+    }
 }
 
 impl fmt::Display for PieceType {
@@ -80,16 +88,99 @@ impl fmt::Display for PieceType {
 }
 
 /// A piece.
-#[derive(Clone, Copy, PartialEq, Debug)]
-pub struct Piece {
-    pub(crate) piece_type: PieceType,
-    pub(crate) color: Color,
-}
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct Piece(u8);
 
 impl Piece {
+    const COLOR_SHIFT: u8 = 3;
+    const BLACK_COLOR_CODE: u8 = 1 << Self::COLOR_SHIFT;
+
+    /// No piece
+    pub const EMPTY: Self = Self(0);
+    /// White pawn
+    pub const W_PAWN: Self = Self(PieceType::PAWN_W.to_u8());
+    pub(crate) const OFF_BOARD: Self = Self(PieceType::PAWN_B.to_u8());
+    /// White knight
+    pub const W_KNIGHT: Self = Self(PieceType::KNIGHT.to_u8());
+    /// White bishop
+    pub const W_BISHOP: Self = Self(PieceType::BISHOP.to_u8());
+    /// White rook
+    pub const W_ROOK: Self = Self(PieceType::ROOK.to_u8());
+    /// White queen
+    pub const W_QUEEN: Self = Self(PieceType::QUEEN.to_u8());
+    /// White king
+    pub const W_KING: Self = Self(PieceType::KING.to_u8());
+
+    /// Black pawn
+    pub const B_PAWN: Self = Self(PieceType::PAWN_B.to_u8() + Self::BLACK_COLOR_CODE);
+    /// Black knight
+    pub const B_KNIGHT: Self = Self(PieceType::KNIGHT.to_u8() + Self::BLACK_COLOR_CODE);
+    /// Black bishop
+    pub const B_BISHOP: Self = Self(PieceType::BISHOP.to_u8() + Self::BLACK_COLOR_CODE);
+    /// Black rook
+    pub const B_ROOK: Self = Self(PieceType::ROOK.to_u8() + Self::BLACK_COLOR_CODE);
+    /// Black queen
+    pub const B_QUEEN: Self = Self(PieceType::QUEEN.to_u8() + Self::BLACK_COLOR_CODE);
+    /// Black king
+    pub const B_KING: Self = Self(PieceType::KING.to_u8() + Self::BLACK_COLOR_CODE);
+
+    /// Returns the color of the piece
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use chers::Piece;
+    /// use chers::Color;
+    ///
+    ///
+    /// assert_eq!(Piece::W_PAWN.color(), Color::WHITE);
+    /// assert_eq!(Piece::W_KING.color(), Color::WHITE);
+    ///
+    /// assert_eq!(Piece::B_PAWN.color(), Color::BLACK);
+    /// assert_eq!(Piece::B_KING.color(), Color::BLACK);
+    /// ```
+    pub fn color(self) -> Color {
+        Color::from_bool((self.0 >> 3 & 1) == 1)
+    }
+
+    /// Returns the type of the piece
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use chers::Piece;
+    /// use chers::PieceType;
+    ///
+    ///
+    /// assert_eq!(Piece::W_PAWN.piece_type(), PieceType::PAWN_W);
+    /// assert_eq!(Piece::W_KING.piece_type(), PieceType::KING);
+    ///
+    /// assert_eq!(Piece::B_PAWN.piece_type(), PieceType::PAWN_B);
+    /// assert_eq!(Piece::B_KING.piece_type(), PieceType::KING);
+    /// ```
+    pub fn piece_type(self) -> PieceType {
+        PieceType::from_u8(self.0 & 7)
+    }
+
     /// Creates a new `Piece` from a `PieceType` and a `Color`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use chers::Piece;
+    /// use chers::PieceType;
+    /// use chers::Color;
+    ///
+    ///
+    /// assert_eq!(Piece::new(PieceType::PAWN_W, Color::WHITE), Piece::W_PAWN);
+    /// assert_eq!(Piece::new(PieceType::KING, Color::WHITE), Piece::W_KING);
+    ///
+    /// assert_eq!(Piece::new(PieceType::PAWN_B, Color::BLACK), Piece::B_PAWN);
+    /// assert_eq!(Piece::new(PieceType::KING, Color::BLACK), Piece::B_KING);
+    /// ```
+
     pub fn new(piece_type: PieceType, color: Color) -> Self {
-        Self { piece_type, color }
+        Self((color.to_u8() << Self::COLOR_SHIFT) + piece_type.to_u8())
     }
 
     /// Creates a `Piece` from its english letter or returns `None`.
@@ -119,19 +210,23 @@ impl Piece {
 
     /// Returns true if the color of `self` matches `color`.
     pub fn is_color(self, color: Color) -> bool {
-        self.color == color
+        self.color() == color
     }
 
     /// Returns true if the piece type of `self` matches `piece_type`.
     pub fn is_type(self, piece_type: PieceType) -> bool {
-        self.piece_type == piece_type
+        self.piece_type() == piece_type
+    }
+
+    pub(crate) fn is_piece(self) -> bool {
+        self == Self::W_PAWN || self.0 > Self::OFF_BOARD.0
     }
 }
 
 impl fmt::Display for Piece {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let symbol = self.piece_type.to_char();
-        if self.color == Color::WHITE {
+        let symbol = self.piece_type().to_char();
+        if self.is_color(Color::WHITE) {
             write!(f, "{}", symbol.to_ascii_uppercase())
         } else {
             write!(f, "{}", symbol)

@@ -39,6 +39,8 @@ pub enum MoveFlags {
 pub struct BitMove(u16);
 
 impl BitMove {
+    pub(crate) const NULL: Self = Self(0);
+
     const QUIET: u16 = 0;
     const DOUBLE_PAWN_PUSH: u16 = 1;
     const KING_SIDE_CASTLE: u16 = 2;
