@@ -33,6 +33,7 @@ pub(crate) enum BoardState {
 #[derive(Clone)]
 pub struct Position {
     pub(crate) pieces: [BoardState; 120],
+    pub(crate) king_square: [Square; 2],
     pub(crate) side_to_move: Color,
     pub(crate) ply: u16,
 
@@ -154,6 +155,9 @@ impl Position {
                 prev_state: Some(state.clone()),
             });
 
+            if m.origin() == self.king_square[!self.side_to_move as usize] {
+                self.king_square[!self.side_to_move as usize] = m.target();
+            }
             // white castling
             match p.color {
                 Color::White => {
@@ -226,6 +230,9 @@ impl Position {
                 Some(p) => BoardState::Piece(p),
                 None => BoardState::Empty,
             };
+            if m.target() == self.king_square[self.side_to_move as usize] {
+                self.king_square[self.side_to_move as usize] = m.origin();
+            }
 
             self.state = self.state.prev_state.as_ref().unwrap().clone();
 

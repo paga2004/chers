@@ -4,10 +4,8 @@ use crate::position::{
     WHITE_PAWN_CAPTURE_OFFSETS,
 };
 use crate::Color;
-use crate::File;
 use crate::PieceType;
 use crate::Position;
-use crate::Rank;
 use crate::Square;
 
 impl Position {
@@ -121,19 +119,7 @@ impl Position {
     /// assert!(pos.in_check(Color::Black));
     /// ```
     pub fn in_check(&self, side: Color) -> bool {
-        // FIXME: This loop really slow.
-        let mut sq = Square::A1;
-        'outer: for i in 0..8 {
-            for j in 0..8 {
-                sq = Square::new(File::new(i), Rank::new(j));
-                if let BoardState::Piece(p) = self.pieces[sq] {
-                    if p.is_type(PieceType::King) && p.is_color(side) {
-                        break 'outer;
-                    }
-                }
-            }
-        }
-        self.is_attacked(sq, !side)
+        self.is_attacked(self.king_square[side as usize], !side)
     }
 }
 

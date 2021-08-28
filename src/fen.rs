@@ -5,6 +5,7 @@ use crate::position_state::PositionState;
 use crate::Color;
 use crate::File;
 use crate::Piece;
+use crate::PieceType;
 use crate::Position;
 use crate::Rank;
 use crate::Square;
@@ -44,8 +45,23 @@ impl Position {
             en_passant_square,
             halfmove_clock,
         ));
+
+        let mut king_square = [Square::A1; 2];
+        let mut sq;
+        for i in 0..8 {
+            for j in 0..8 {
+                sq = Square::new(File::new(i), Rank::new(j));
+                if let BoardState::Piece(p) = pieces[sq] {
+                    if p.is_type(PieceType::King) {
+                        king_square[p.color as usize] = sq;
+                    }
+                }
+            }
+        }
+
         Ok(Self {
             pieces,
+            king_square,
             side_to_move: active_color,
             ply,
             state,
@@ -325,6 +341,19 @@ mod tests {
                 }
             }
         }
+        let mut king_square = [Square::A1; 2];
+        let mut sq;
+        for i in 0..8 {
+            for j in 0..8 {
+                sq = Square::new(File::new(i), Rank::new(j));
+                if let BoardState::Piece(p) = piece_array[sq] {
+                    if p.is_type(PieceType::King) {
+                        king_square[p.color as usize] = sq;
+                    }
+                }
+            }
+        }
+
         let state = Arc::new(PositionState::new(
             castling_rights,
             en_passant_square,
@@ -332,6 +361,7 @@ mod tests {
         ));
         let expected = Position {
             pieces: piece_array,
+            king_square,
             side_to_move,
             ply,
             state,
