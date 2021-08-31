@@ -1,6 +1,10 @@
 use std::fmt;
 
-use crate::{ParsedMove, PieceType, Square};
+use crate::File;
+use crate::ParsedMove;
+use crate::PieceType;
+use crate::Rank;
+use crate::Square;
 
 /// Additional information for a move.
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -115,19 +119,18 @@ impl BitMove {
     }
 
     fn from_flag_bits(origin: Square, target: Square, flags: u16) -> Self {
-        Self(Self::square_to_code(origin) | (Self::square_to_code(target) << 6) | flags << 12)
+        Self(
+            Self::square_to_promotion_code(origin)
+                | (Self::square_to_promotion_code(target) << 6)
+                | flags << 12,
+        )
     }
 
-    // TODO: remove this
-    fn square_to_code(sq: Square) -> u16 {
-        (sq.file() as u16) | ((sq.rank() as u16) << 3)
+    fn square_to_promotion_code(sq: Square) -> u16 {
+        sq.file().to_u16() | (sq.rank().to_u16() << 3)
     }
 
-    // TODO: remove this
-    // a Square should be represented as 0..=63 and propbably not be an enum in the first place
     fn square_from_code(code: u16) -> Square {
-        use crate::File;
-        use crate::Rank;
         let file = File::new((code & 7) as u8);
         let rank = Rank::new(((code >> 3) & 7) as u8);
         Square::new(file, rank)
@@ -256,21 +259,20 @@ mod tests {
     use super::*;
 
     use MoveFlags::*;
-    use Square::*;
 
-    #[test_case(E2, E3, QuietMove)]
-    #[test_case(E2, E4, DoublePawnPush)]
-    #[test_case(F7, F8, Promotion { piece: PieceType::KNIGHT, capture: false })]
-    #[test_case(F7, F8, Promotion { piece: PieceType::ROOK, capture: false })]
-    #[test_case(F7, F8, Promotion { piece: PieceType::BISHOP, capture: false })]
-    #[test_case(F7, F8, Promotion { piece: PieceType::QUEEN, capture: false })]
-    #[test_case(F7, G8, Promotion { piece: PieceType::QUEEN, capture: true })]
-    #[test_case(C5, D4, Capture { en_passant: false })]
-    #[test_case(D4, C3, Capture { en_passant: true })]
-    #[test_case(E1, G1, Castle { kingside: true })]
-    #[test_case(E1, C1, Castle { kingside: false })]
-    #[test_case(E8, G8, Castle { kingside: true })]
-    #[test_case(E8, C8, Castle { kingside: false })]
+    #[test_case(Square::E2, Square::E3, QuietMove)]
+    #[test_case(Square::E2, Square::E4, DoublePawnPush)]
+    #[test_case(Square::F7, Square::F8, Promotion { piece: PieceType::KNIGHT, capture: false })]
+    #[test_case(Square::F7, Square::F8, Promotion { piece: PieceType::ROOK, capture: false })]
+    #[test_case(Square::F7, Square::F8, Promotion { piece: PieceType::BISHOP, capture: false })]
+    #[test_case(Square::F7, Square::F8, Promotion { piece: PieceType::QUEEN, capture: false })]
+    #[test_case(Square::F7, Square::G8, Promotion { piece: PieceType::QUEEN, capture: true })]
+    #[test_case(Square::C5, Square::D4, Capture { en_passant: false })]
+    #[test_case(Square::D4, Square::C3, Capture { en_passant: true })]
+    #[test_case(Square::E1, Square::G1, Castle { kingside: true })]
+    #[test_case(Square::E1, Square::C1, Castle { kingside: false })]
+    #[test_case(Square::E8, Square::G8, Castle { kingside: true })]
+    #[test_case(Square::E8, Square::C8, Castle { kingside: false })]
     fn bitmove_new(origin: Square, target: Square, flags: MoveFlags) {
         let bm = BitMove::new(origin, target, flags);
 
@@ -324,33 +326,33 @@ mod tests {
 
     #[test]
     fn bitmove_new_quiet() {
-        let expected = BitMove::new(E2, E3, QuietMove);
-        assert_eq!(expected, BitMove::new_quiet(E2, E3));
+        let expected = BitMove::new(Square::E2, Square::E3, QuietMove);
+        assert_eq!(expected, BitMove::new_quiet(Square::E2, Square::E3));
     }
 
     #[test]
     fn bitmove_new_pawn_push() {
-        let expected = BitMove::new(E2, E4, DoublePawnPush);
-        assert_eq!(expected, BitMove::new_pawn_push(E2, E4));
+        let expected = BitMove::new(Square::E2, Square::E4, DoublePawnPush);
+        assert_eq!(expected, BitMove::new_pawn_push(Square::E2, Square::E4));
     }
 
     #[test]
     fn bitmove_new_capture() {
-        let expected = BitMove::new(G4, H3, Capture { en_passant: false });
-        assert_eq!(expected, BitMove::new_capture(G4, H3));
+        let expected = BitMove::new(Square::G4, Square::H3, Capture { en_passant: false });
+        assert_eq!(expected, BitMove::new_capture(Square::G4, Square::H3));
     }
 
     #[test]
     fn bitmove_new_en_passant() {
-        let expected = BitMove::new(G4, H3, Capture { en_passant: true });
-        assert_eq!(expected, BitMove::new_en_passant(G4, H3));
+        let expected = BitMove::new(Square::G4, Square::H3, Capture { en_passant: true });
+        assert_eq!(expected, BitMove::new_en_passant(Square::G4, Square::H3));
     }
 
     #[test]
     fn bitmove_new_promotion_capture() {
         let expected = BitMove::new(
-            E7,
-            F8,
+            Square::E7,
+            Square::F8,
             Promotion {
                 capture: true,
                 piece: PieceType::QUEEN,
@@ -358,32 +360,41 @@ mod tests {
         );
         assert_eq!(
             expected,
-            BitMove::new_promotion_capture(E7, F8, PieceType::QUEEN)
+            BitMove::new_promotion_capture(Square::E7, Square::F8, PieceType::QUEEN)
         );
     }
 
     #[test]
     fn bitmove_new_promotion() {
         let expected = BitMove::new(
-            E7,
-            E8,
+            Square::E7,
+            Square::E8,
             Promotion {
                 capture: false,
                 piece: PieceType::QUEEN,
             },
         );
-        assert_eq!(expected, BitMove::new_promotion(E7, E8, PieceType::QUEEN));
+        assert_eq!(
+            expected,
+            BitMove::new_promotion(Square::E7, Square::E8, PieceType::QUEEN)
+        );
     }
 
     #[test]
     fn bitmove_new_castle_kingside() {
-        let expected = BitMove::new(E1, G1, Castle { kingside: true });
-        assert_eq!(expected, BitMove::new_castle_kingside(E1, G1));
+        let expected = BitMove::new(Square::E1, Square::G1, Castle { kingside: true });
+        assert_eq!(
+            expected,
+            BitMove::new_castle_kingside(Square::E1, Square::G1)
+        );
     }
 
     #[test]
     fn bitmove_new_castle_queenside() {
-        let expected = BitMove::new(E1, C1, Castle { kingside: false });
-        assert_eq!(expected, BitMove::new_castle_queenside(E1, C1));
+        let expected = BitMove::new(Square::E1, Square::C1, Castle { kingside: false });
+        assert_eq!(
+            expected,
+            BitMove::new_castle_queenside(Square::E1, Square::C1)
+        );
     }
 }

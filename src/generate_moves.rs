@@ -10,7 +10,7 @@ use crate::Piece;
 use crate::PieceType;
 use crate::Position;
 use crate::Rank;
-use crate::Square::{self, *};
+use crate::Square;
 
 impl Position {
     // Functions target add moves target the MoveList. They can later be used target assign diffrent scores target
@@ -144,11 +144,11 @@ impl Position {
     }
 
     fn generate_white_pawn_moves(&self, moves: &mut MoveList, origin: Square) {
-        let index = origin as usize;
+        let index = origin.to_usize();
         let offset = WHITE_PAWN_OFFSET;
         let capture_offsets = WHITE_PAWN_CAPTURE_OFFSETS;
-        let starting_rank = origin.rank() == Rank::Second;
-        let promotion_rank = origin.rank() == Rank::Seventh;
+        let starting_rank = origin.rank() == Rank::SECOND;
+        let promotion_rank = origin.rank() == Rank::SEVENTH;
 
         // captures
         for offset in &capture_offsets {
@@ -182,11 +182,11 @@ impl Position {
     }
 
     fn generate_black_pawn_moves(&self, moves: &mut MoveList, origin: Square) {
-        let index = origin as usize;
+        let index = origin.to_usize();
         let offset = BLACK_PAWN_OFFSET;
         let capture_offsets = BLACK_PAWN_CAPTURE_OFFSETS;
-        let starting_rank = origin.rank() == Rank::Seventh;
-        let promotion_rank = origin.rank() == Rank::Second;
+        let starting_rank = origin.rank() == Rank::SEVENTH;
+        let promotion_rank = origin.rank() == Rank::SECOND;
 
         // captures
         for offset in &capture_offsets {
@@ -221,7 +221,7 @@ impl Position {
 
     fn generate_knight_moves(&self, moves: &mut MoveList, origin: Square) {
         for offset in &KNIGHT_OFFSETS {
-            let target = (origin as i8 + offset) as usize;
+            let target = (origin.to_i8() + offset) as usize;
             match self.pieces[target] {
                 Piece::EMPTY => self.add_quiet(moves, origin, Square::from_index(target)),
                 Piece::OFF_BOARD => continue,
@@ -233,7 +233,7 @@ impl Position {
 
     fn generate_bishop_moves(&self, moves: &mut MoveList, origin: Square) {
         for offset in &BISHOP_OFFSETS {
-            let mut target = (origin as i8 + offset) as usize;
+            let mut target = (origin.to_i8() + offset) as usize;
             let mut piece = self.pieces[target];
             while piece != Piece::OFF_BOARD {
                 if piece != Piece::EMPTY {
@@ -252,7 +252,7 @@ impl Position {
 
     fn generate_rook_moves(&self, moves: &mut MoveList, origin: Square) {
         for offset in &ROOK_OFFSETS {
-            let mut target = (origin as i8 + offset) as usize;
+            let mut target = (origin.to_i8() + offset) as usize;
             let mut piece = self.pieces[target];
             while piece != Piece::OFF_BOARD {
                 if piece != Piece::EMPTY {
@@ -271,7 +271,7 @@ impl Position {
 
     fn generate_king_moves(&self, moves: &mut MoveList, origin: Square) {
         for offset in &KING_OFFSETS {
-            let target = (origin as i8 + offset) as usize;
+            let target = (origin.to_i8() + offset) as usize;
             match self.pieces[target] {
                 Piece::EMPTY => self.add_quiet(moves, origin, Square::from_index(target)),
                 Piece::OFF_BOARD => continue,
@@ -288,23 +288,23 @@ impl Position {
                 if self.state.castling_rights.white_king_side {
                     // NOTE: Might be faster to check first if both squares are empty since that is
                     // just a lookup.
-                    if self.is_empty_and_not_attacked(F1)
-                        && self.is_empty_and_not_attacked(G1)
+                    if self.is_empty_and_not_attacked(Square::F1)
+                        && self.is_empty_and_not_attacked(Square::G1)
                         && !self.is_check()
                     {
-                        self.add_castle_kingside(moves, E1, G1);
+                        self.add_castle_kingside(moves, Square::E1, Square::G1);
                     }
                 }
                 if self.state.castling_rights.white_queen_side {
                     // NOTE: Might be faster to check first if all squares are empty since that is
                     // just a lookup.
 
-                    if self.pieces[B1] == Piece::EMPTY
-                        && self.is_empty_and_not_attacked(C1)
-                        && self.is_empty_and_not_attacked(D1)
+                    if self.pieces[Square::B1] == Piece::EMPTY
+                        && self.is_empty_and_not_attacked(Square::C1)
+                        && self.is_empty_and_not_attacked(Square::D1)
                         && !self.is_check()
                     {
-                        self.add_castle_queenside(moves, E1, C1);
+                        self.add_castle_queenside(moves, Square::E1, Square::C1);
                     }
                 }
             }
@@ -312,23 +312,23 @@ impl Position {
                 if self.state.castling_rights.black_king_side {
                     // NOTE: Might be faster to check first if both squares are empty since that is
                     // just a lookup.
-                    if self.is_empty_and_not_attacked(F8)
-                        && self.is_empty_and_not_attacked(G8)
+                    if self.is_empty_and_not_attacked(Square::F8)
+                        && self.is_empty_and_not_attacked(Square::G8)
                         && !self.is_check()
                     {
-                        self.add_castle_kingside(moves, E8, G8);
+                        self.add_castle_kingside(moves, Square::E8, Square::G8);
                     }
                 }
                 if self.state.castling_rights.black_queen_side {
                     // NOTE: Might be faster to check first if all squares are empty since that is
                     // just a lookup.
 
-                    if self.pieces[B8] == Piece::EMPTY
-                        && self.is_empty_and_not_attacked(C8)
-                        && self.is_empty_and_not_attacked(D8)
+                    if self.pieces[Square::B8] == Piece::EMPTY
+                        && self.is_empty_and_not_attacked(Square::C8)
+                        && self.is_empty_and_not_attacked(Square::D8)
                         && !self.is_check()
                     {
-                        self.add_castle_queenside(moves, E8, C8);
+                        self.add_castle_queenside(moves, Square::E8, Square::C8);
                     }
                 }
             }
@@ -343,7 +343,7 @@ impl Position {
         if let Some(sq) = self.state.ep_square {
             // The offset is added to the target square. That's why it's the other way around.
             for offset in BLACK_PAWN_CAPTURE_OFFSETS {
-                let target = (sq as i8 + offset) as usize;
+                let target = (sq.to_i8() + offset) as usize;
                 if self.pieces[target] == Piece::W_PAWN {
                     self.add_en_passant(moves, Square::from_index(target), sq);
                 }
@@ -355,7 +355,7 @@ impl Position {
         if let Some(sq) = self.state.ep_square {
             // The offset is added to the target square. That's why it's the other way around.
             for offset in WHITE_PAWN_CAPTURE_OFFSETS {
-                let target = (sq as i8 + offset) as usize;
+                let target = (sq.to_i8() + offset) as usize;
                 if self.pieces[target] == Piece::B_PAWN {
                     self.add_en_passant(moves, Square::from_index(target), sq);
                 }

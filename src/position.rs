@@ -75,7 +75,7 @@ impl Position {
         let ep_square = if m.is_double_push() {
             Some(Square::new(
                 m.target().file(),
-                p.color().map(Rank::Third, Rank::Sixth),
+                p.color().map(Rank::THIRD, Rank::SIXTH),
             ))
         } else {
             None

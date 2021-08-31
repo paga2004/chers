@@ -102,7 +102,6 @@ mod tests {
 
     use super::*;
     use crate::error::ParseSquareError;
-    use Square::*;
 
     #[test_case(""; "empty string")] // error without the explicit name
     #[test_case("e")]
@@ -149,12 +148,12 @@ mod tests {
         );
     }
 
-    #[test_case("e2e4", E2, E4, None)]
-    #[test_case("e4g5", E4, G5, None)]
-    #[test_case("f7f8q", F7, F8, Some(PieceType::QUEEN))]
-    #[test_case("f7f8r", F7, F8, Some(PieceType::ROOK))]
-    #[test_case("f7f8b", F7, F8, Some(PieceType::BISHOP))]
-    #[test_case("f7f8n", F7, F8, Some(PieceType::KNIGHT))]
+    #[test_case("e2e4", Square::E2, Square::E4, None)]
+    #[test_case("e4g5", Square::E4, Square::G5, None)]
+    #[test_case("f7f8q", Square::F7, Square::F8, Some(PieceType::QUEEN))]
+    #[test_case("f7f8r", Square::F7, Square::F8, Some(PieceType::ROOK))]
+    #[test_case("f7f8b", Square::F7, Square::F8, Some(PieceType::BISHOP))]
+    #[test_case("f7f8n", Square::F7, Square::F8, Some(PieceType::KNIGHT))]
     fn test_move_from_coordinate_notation(
         m: &str,
         from: Square,
