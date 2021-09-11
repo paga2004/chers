@@ -146,6 +146,7 @@ mod tests {
     use crate::Position;
 
     #[test]
+    #[ignore = "too long for a normal test run"]
     fn random_fens_test() {
         let iter = random_fens();
         let mut count = 0;

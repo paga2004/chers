@@ -282,61 +282,70 @@ impl Position {
     }
 
     fn generate_castling_moves(&self, moves: &mut MoveList) {
-        // TODO: dry
+        // the order of the following operations is important for the best performance
+        // 1. we check if the squares are empty since that is just a lookup and really fast.
+        // 2. we check if we are in check and return early.
+        // 3. we check if the squares are attacked
         match self.side_to_move {
             Color::WHITE => {
-                if self.state.castling_rights.white_king_side() {
-                    // NOTE: Might be faster to check first if both squares are empty since that is
-                    // just a lookup.
-                    if self.is_empty_and_not_attacked(Square::F1)
-                        && self.is_empty_and_not_attacked(Square::G1)
-                        && !self.is_check()
+                if self.state.castling_rights.white_king_side()
+                    && self.pieces[Square::F1] == Piece::EMPTY
+                    && self.pieces[Square::G1] == Piece::EMPTY
+                {
+                    if self.is_check() {
+                        return;
+                    }
+                    if !self.is_attacked(Square::F1, Color::BLACK)
+                        && !self.is_attacked(Square::G1, Color::BLACK)
                     {
                         self.add_castle_kingside(moves, Square::E1, Square::G1);
                     }
                 }
-                if self.state.castling_rights.white_queen_side() {
-                    // NOTE: Might be faster to check first if all squares are empty since that is
-                    // just a lookup.
-
-                    if self.pieces[Square::B1] == Piece::EMPTY
-                        && self.is_empty_and_not_attacked(Square::C1)
-                        && self.is_empty_and_not_attacked(Square::D1)
-                        && !self.is_check()
+                if self.state.castling_rights.white_queen_side()
+                    && self.pieces[Square::B1] == Piece::EMPTY
+                    && self.pieces[Square::C1] == Piece::EMPTY
+                    && self.pieces[Square::D1] == Piece::EMPTY
+                {
+                    if self.is_check() {
+                        return;
+                    }
+                    if !self.is_attacked(Square::C1, Color::BLACK)
+                        && !self.is_attacked(Square::D1, Color::BLACK)
                     {
                         self.add_castle_queenside(moves, Square::E1, Square::C1);
                     }
                 }
             }
             Color::BLACK => {
-                if self.state.castling_rights.black_king_side() {
-                    // NOTE: Might be faster to check first if both squares are empty since that is
-                    // just a lookup.
-                    if self.is_empty_and_not_attacked(Square::F8)
-                        && self.is_empty_and_not_attacked(Square::G8)
-                        && !self.is_check()
+                if self.state.castling_rights.black_king_side()
+                    && self.pieces[Square::F8] == Piece::EMPTY
+                    && self.pieces[Square::G8] == Piece::EMPTY
+                {
+                    if self.is_check() {
+                        return;
+                    }
+                    if !self.is_attacked(Square::F8, Color::WHITE)
+                        && !self.is_attacked(Square::G8, Color::WHITE)
                     {
                         self.add_castle_kingside(moves, Square::E8, Square::G8);
                     }
                 }
-                if self.state.castling_rights.black_queen_side() {
-                    // NOTE: Might be faster to check first if all squares are empty since that is
-                    // just a lookup.
-
-                    if self.pieces[Square::B8] == Piece::EMPTY
-                        && self.is_empty_and_not_attacked(Square::C8)
-                        && self.is_empty_and_not_attacked(Square::D8)
-                        && !self.is_check()
+                if self.state.castling_rights.black_queen_side()
+                    && self.pieces[Square::B8] == Piece::EMPTY
+                    && self.pieces[Square::C8] == Piece::EMPTY
+                    && self.pieces[Square::D8] == Piece::EMPTY
+                {
+                    if self.is_check() {
+                        return;
+                    }
+                    if !self.is_attacked(Square::C8, Color::WHITE)
+                        && !self.is_attacked(Square::D8, Color::WHITE)
                     {
                         self.add_castle_queenside(moves, Square::E8, Square::C8);
                     }
                 }
             }
         }
-    }
-
-    fn is_empty_and_not_attacked(&self, sq: Square) -> bool {
-        self.pieces[sq] == Piece::EMPTY && !self.is_attacked(sq, !self.side_to_move)
     }
 
     fn generate_en_passant_moves_white(&self, moves: &mut MoveList) {

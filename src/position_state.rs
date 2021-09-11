@@ -9,7 +9,6 @@ pub(crate) struct PositionState {
 
     pub(crate) halfmove_clock: u16,
 
-    // TODO: use some kind of nullmove and nullpiece instead of Option<T>
     pub(crate) prev_move: BitMove,
     pub(crate) captured_piece: Piece,
     pub(crate) prev_state: Option<Arc<PositionState>>,
