@@ -92,15 +92,12 @@ impl Position {
             m.target()
         };
 
-        // TODO: simplify
-        let captured_piece = if m.is_capture() {
-            let p = self.pieces[capture_field];
-            debug_assert!(p != Piece::EMPTY);
-            debug_assert!(p != Piece::OFF_BOARD);
-            p
-        } else {
-            Piece::EMPTY
-        };
+        let captured_piece = self.pieces[capture_field];
+
+        debug_assert!(
+            (captured_piece == Piece::EMPTY || captured_piece == Piece::OFF_BOARD)
+                != m.is_capture(),
+        );
 
         // promotion
         let piece = if m.is_promotion() {
@@ -110,34 +107,8 @@ impl Position {
         };
 
         // castling rights
-        // TODO: Use a castling mask for this
-        let mut remove_castling_rights = |sq| match sq {
-            Square::A1 => {
-                castling_rights.white_queen_side = false;
-            }
-            Square::E1 => {
-                castling_rights.white_queen_side = false;
-                castling_rights.white_king_side = false;
-            }
-            Square::H1 => {
-                castling_rights.white_king_side = false;
-            }
-
-            Square::A8 => {
-                castling_rights.black_queen_side = false;
-            }
-            Square::E8 => {
-                castling_rights.black_queen_side = false;
-                castling_rights.black_king_side = false;
-            }
-            Square::H8 => {
-                castling_rights.black_king_side = false;
-            }
-
-            _ => {}
-        };
-        remove_castling_rights(m.origin());
-        remove_castling_rights(m.target());
+        castling_rights.update(m.origin());
+        castling_rights.update(m.target());
 
         self.state = Arc::new(PositionState {
             castling_rights,

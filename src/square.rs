@@ -156,8 +156,8 @@ impl fmt::Display for Square {
     }
 }
 
-impl Index<Square> for [Piece; 120] {
-    type Output = Piece;
+impl<T> Index<Square> for [T; 120] {
+    type Output = T;
 
     fn index(&self, index: Square) -> &Self::Output {
         &self[index.0 as usize]

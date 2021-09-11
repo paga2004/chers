@@ -285,7 +285,7 @@ impl Position {
         // TODO: dry
         match self.side_to_move {
             Color::WHITE => {
-                if self.state.castling_rights.white_king_side {
+                if self.state.castling_rights.white_king_side() {
                     // NOTE: Might be faster to check first if both squares are empty since that is
                     // just a lookup.
                     if self.is_empty_and_not_attacked(Square::F1)
@@ -295,7 +295,7 @@ impl Position {
                         self.add_castle_kingside(moves, Square::E1, Square::G1);
                     }
                 }
-                if self.state.castling_rights.white_queen_side {
+                if self.state.castling_rights.white_queen_side() {
                     // NOTE: Might be faster to check first if all squares are empty since that is
                     // just a lookup.
 
@@ -309,7 +309,7 @@ impl Position {
                 }
             }
             Color::BLACK => {
-                if self.state.castling_rights.black_king_side {
+                if self.state.castling_rights.black_king_side() {
                     // NOTE: Might be faster to check first if both squares are empty since that is
                     // just a lookup.
                     if self.is_empty_and_not_attacked(Square::F8)
@@ -319,7 +319,7 @@ impl Position {
                         self.add_castle_kingside(moves, Square::E8, Square::G8);
                     }
                 }
-                if self.state.castling_rights.black_queen_side {
+                if self.state.castling_rights.black_queen_side() {
                     // NOTE: Might be faster to check first if all squares are empty since that is
                     // just a lookup.
 

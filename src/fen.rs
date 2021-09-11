@@ -119,27 +119,30 @@ fn parse_color(s: &str) -> Result<Color, ParseFenError<'_>> {
 }
 
 fn parse_castling_rights(s: &str) -> Result<CastlingRights, ParseFenError<'_>> {
-    let mut castling_rights = CastlingRights {
-        white_king_side: false,
-        white_queen_side: false,
-        black_king_side: false,
-        black_queen_side: false,
-    };
+    let mut white_king_side = false;
+    let mut white_queen_side = false;
+    let mut black_king_side = false;
+    let mut black_queen_side = false;
 
     if s != "-" {
         for c in s.chars() {
             match c {
-                'K' => castling_rights.white_king_side = true,
-                'Q' => castling_rights.white_queen_side = true,
-                'k' => castling_rights.black_king_side = true,
-                'q' => castling_rights.black_queen_side = true,
+                'K' => white_king_side = true,
+                'Q' => white_queen_side = true,
+                'k' => black_king_side = true,
+                'q' => black_queen_side = true,
 
                 _ => return Err(ParseFenError::InvalidCastlingRights(s)),
             }
         }
     }
 
-    Ok(castling_rights)
+    Ok(CastlingRights::new(
+        white_king_side,
+        white_queen_side,
+        black_king_side,
+        black_queen_side,
+    ))
 }
 
 fn parse_en_passant_square(s: &str) -> Result<Option<Square>, ParseFenError<'_>> {
