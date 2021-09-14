@@ -141,6 +141,7 @@ impl Piece {
     /// assert_eq!(Piece::B_PAWN.color(), Color::BLACK);
     /// assert_eq!(Piece::B_KING.color(), Color::BLACK);
     /// ```
+    #[inline]
     pub fn color(self) -> Color {
         Color::from_bool((self.0 >> 3 & 1) == 1)
     }
@@ -160,6 +161,7 @@ impl Piece {
     /// assert_eq!(Piece::B_PAWN.piece_type(), PieceType::PAWN_B);
     /// assert_eq!(Piece::B_KING.piece_type(), PieceType::KING);
     /// ```
+    #[inline]
     pub fn piece_type(self) -> PieceType {
         PieceType::from_u8(self.0 & 7)
     }
@@ -180,7 +182,7 @@ impl Piece {
     /// assert_eq!(Piece::new(PieceType::PAWN_B, Color::BLACK), Piece::B_PAWN);
     /// assert_eq!(Piece::new(PieceType::KING, Color::BLACK), Piece::B_KING);
     /// ```
-
+    #[inline]
     pub fn new(piece_type: PieceType, color: Color) -> Self {
         Self((color.to_u8() << Self::COLOR_SHIFT) + piece_type.to_u8())
     }
@@ -211,15 +213,18 @@ impl Piece {
     }
 
     /// Returns true if the color of `self` matches `color`.
+    #[inline]
     pub fn is_color(self, color: Color) -> bool {
         self.color() == color
     }
 
     /// Returns true if the piece type of `self` matches `piece_type`.
+    #[inline]
     pub fn is_type(self, piece_type: PieceType) -> bool {
         self.piece_type() == piece_type
     }
 
+    #[inline]
     pub(crate) fn is_piece(self) -> bool {
         self == Self::W_PAWN || self.0 > Self::OFF_BOARD.0
     }

@@ -153,11 +153,8 @@ impl BitMove {
             PieceType::KNIGHT => 0,
             PieceType::BISHOP => 1,
             PieceType::ROOK => 2,
-            // TODO: is this really better for performance?
-            _ => {
-                debug_assert_eq!(piece, PieceType::QUEEN);
-                3
-            }
+            PieceType::QUEEN => 3,
+            _ => unreachable!(),
         }
     }
 
@@ -169,8 +166,8 @@ impl BitMove {
             0 => PieceType::KNIGHT,
             1 => PieceType::BISHOP,
             2 => PieceType::ROOK,
-            // TODO: is this really better for performance?
-            _ => PieceType::QUEEN,
+            3 => PieceType::QUEEN,
+            _ => unreachable!(),
         }
     }
 
