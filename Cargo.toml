@@ -32,13 +32,21 @@ iai = "0.1.1"
 zstd = "0.9.0"
 
 [profile.test]
-opt-level = 3
+opt-level = 3 # otherwise perft tests take ages
 debug = true
 debug-assertions = true
 
 [profile.bench]
-debug = true
+debug = true # needed for flamegraph
 debug-assertions = false
 opt-level = 3
-lto = true
+lto = 'fat'
 codegen-units = 1
+
+[profile.release]
+debug = false
+debug-assertions = false
+opt-level = 3
+lto = 'fat'
+codegen-units = 1
+panic = 'abort'

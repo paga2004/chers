@@ -78,6 +78,7 @@ impl Square {
     pub const H8: Self = Self(98);
 
     /// Creates a `Square` from file and rank.
+    #[inline]
     pub fn new(file: File, rank: Rank) -> Self {
         Self(21 + file.to_u8() + 10 * rank.to_u8())
     }
@@ -107,6 +108,7 @@ impl Square {
         Ok(Square::new(file, rank))
     }
 
+    #[inline]
     pub(crate) fn from_index(index: usize) -> Self {
         Self(index as u8)
     }
@@ -121,6 +123,7 @@ impl Square {
     /// assert_eq!(Square::E8.file(), File::E);
     /// assert_eq!(Square::H4.file(), File::H);
     /// ```
+    #[inline]
     pub fn file(self) -> File {
         File::new(self.0 % 10 - 1)
     }
@@ -135,16 +138,17 @@ impl Square {
     /// assert_eq!(Square::E8.rank(), Rank::EIGHTH);
     /// assert_eq!(Square::H4.rank(), Rank::FOURTH);
     /// ```
+    #[inline]
     pub fn rank(self) -> Rank {
-        // self as u8 / 8 is always in the range 0..=7 because self as u8 is always in the range
-        // 0..=63 so the unwrap will never panic
         Rank::new(self.0 / 10 - 2)
     }
 
+    #[inline]
     pub(crate) fn to_usize(self) -> usize {
         self.0 as usize
     }
 
+    #[inline]
     pub(crate) fn to_i8(self) -> i8 {
         self.0 as i8
     }

@@ -22,6 +22,7 @@ impl File {
     /// # Panics
     ///
     /// Panics if `index` is not in the range `0..=7`.
+    #[inline]
     pub fn new(index: u8) -> Self {
         debug_assert!(index < 8);
         Self(index)
@@ -43,10 +44,12 @@ impl File {
         }
     }
 
+    #[inline]
     pub(crate) fn to_u8(self) -> u8 {
         self.0
     }
 
+    #[inline]
     pub(crate) fn to_u16(self) -> u16 {
         self.0 as u16
     }

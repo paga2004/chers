@@ -102,6 +102,7 @@ impl Position {
     /// assert!(!pos1.is_check());
     /// assert!(pos2.is_check());
     /// ```
+    #[inline]
     pub fn is_check(&self) -> bool {
         self.in_check(self.side_to_move)
     }
@@ -117,6 +118,7 @@ impl Position {
     /// assert!(!pos.in_check(Color::WHITE));
     /// assert!(pos.in_check(Color::BLACK));
     /// ```
+    #[inline]
     pub fn in_check(&self, side: Color) -> bool {
         self.is_attacked(self.king_square[side.to_usize()], !side)
     }

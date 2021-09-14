@@ -72,10 +72,12 @@ impl PieceType {
         }
     }
 
+    #[inline]
     pub(crate) fn from_u8(n: u8) -> Self {
         Self(n)
     }
 
+    #[inline]
     pub(crate) const fn to_u8(self) -> u8 {
         self.0 as u8
     }

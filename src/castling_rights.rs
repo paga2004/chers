@@ -34,21 +34,25 @@ impl CastlingRights {
 
 impl CastlingRights {
     /// Returns wether the white king can castle kingside.
+    #[inline]
     pub fn white_king_side(self) -> bool {
         self.0 & 1 != 0
     }
 
     /// Returns wether the white king can castle queenside.
+    #[inline]
     pub fn white_queen_side(self) -> bool {
         self.0 & 2 != 0
     }
 
     /// Returns wether the black king can castle kingside.
+    #[inline]
     pub fn black_king_side(self) -> bool {
         self.0 & 4 != 0
     }
 
     /// Returns wether the black king can castle queenside.
+    #[inline]
     pub fn black_queen_side(self) -> bool {
         self.0 & 8 != 0
     }
@@ -67,6 +71,7 @@ impl CastlingRights {
     /// | black king's rook moved:  | 1111           |  & 1011     |  =  1011    (11)   |
     /// | black queen's rook moved: | 1111           |  & 0111     |  =  0111    (7)    |
     ///
+    #[inline]
     pub fn update(&mut self, sq: Square) {
         #[rustfmt::skip]
         const CASTLE_MASK: [u8; 120] = [

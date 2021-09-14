@@ -43,6 +43,7 @@ impl Color {
     ///
     /// assert_eq!(color.map("white", "black"), "white");
     /// ```
+    #[inline]
     pub fn map<T>(self, white: T, black: T) -> T {
         match self {
             Self::WHITE => white,
@@ -50,14 +51,17 @@ impl Color {
         }
     }
 
+    #[inline]
     pub(crate) const fn to_usize(self) -> usize {
         self.0 as usize
     }
 
+    #[inline]
     pub(crate) const fn to_u8(self) -> u8 {
         self.0 as u8
     }
 
+    #[inline]
     pub(crate) fn from_bool(b: bool) -> Self {
         Self(b)
     }

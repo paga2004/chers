@@ -15,22 +15,27 @@ use crate::Square;
 impl Position {
     // Functions target add moves target the MoveList. They can later be used target assign diffrent scores target
     // the moves for move ordering.
+    #[inline]
     fn add_quiet(&self, moves: &mut MoveList, origin: Square, target: Square) {
         moves.push(BitMove::new_quiet(origin, target));
     }
 
+    #[inline]
     fn add_double_pawn_push(&self, moves: &mut MoveList, origin: Square, target: Square) {
         moves.push(BitMove::new_pawn_push(origin, target));
     }
 
+    #[inline]
     fn add_capture(&self, moves: &mut MoveList, origin: Square, target: Square) {
         moves.push(BitMove::new_capture(origin, target));
     }
 
+    #[inline]
     fn add_en_passant(&self, moves: &mut MoveList, origin: Square, target: Square) {
         moves.push(BitMove::new_en_passant(origin, target));
     }
 
+    #[inline]
     fn add_promotion_capture(&self, moves: &mut MoveList, origin: Square, target: Square) {
         moves.push(BitMove::new_promotion_capture(
             origin,
@@ -54,6 +59,7 @@ impl Position {
         ));
     }
 
+    #[inline]
     fn add_promotion(&self, moves: &mut MoveList, origin: Square, target: Square) {
         moves.push(BitMove::new_promotion(origin, target, PieceType::QUEEN));
         moves.push(BitMove::new_promotion(origin, target, PieceType::ROOK));
@@ -61,10 +67,12 @@ impl Position {
         moves.push(BitMove::new_promotion(origin, target, PieceType::KNIGHT));
     }
 
+    #[inline]
     fn add_castle_kingside(&self, moves: &mut MoveList, origin: Square, target: Square) {
         moves.push(BitMove::new_castle_kingside(origin, target));
     }
 
+    #[inline]
     fn add_castle_queenside(&self, moves: &mut MoveList, origin: Square, target: Square) {
         moves.push(BitMove::new_castle_queenside(origin, target));
     }

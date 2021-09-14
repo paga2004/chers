@@ -75,26 +75,31 @@ impl BitMove {
     }
 
     /// Creates a new quiet move (i.e no capture, promotion, castle, or double pawn push).
+    #[inline]
     pub fn new_quiet(origin: Square, target: Square) -> Self {
         Self::from_flag_bits(origin, target, Self::QUIET)
     }
 
     /// Creates a new double pawn push move.
+    #[inline]
     pub fn new_pawn_push(origin: Square, target: Square) -> Self {
         Self::from_flag_bits(origin, target, Self::DOUBLE_PAWN_PUSH)
     }
 
     /// Creates a new capture move.
+    #[inline]
     pub fn new_capture(origin: Square, target: Square) -> Self {
         Self::from_flag_bits(origin, target, Self::CAPTURE)
     }
 
     /// Creates a new en passant capture move.
+    #[inline]
     pub fn new_en_passant(origin: Square, target: Square) -> Self {
         Self::from_flag_bits(origin, target, Self::EN_PASSANT)
     }
 
     /// Creates a new pawn promotion capture move.
+    #[inline]
     pub fn new_promotion_capture(origin: Square, target: Square, piece: PieceType) -> Self {
         Self::from_flag_bits(
             origin,
@@ -104,20 +109,24 @@ impl BitMove {
     }
 
     /// Creates a new pawn promotion move.
+    #[inline]
     pub fn new_promotion(origin: Square, target: Square, piece: PieceType) -> Self {
         Self::from_flag_bits(origin, target, Self::PROMOTION | Self::piece_to_code(piece))
     }
 
     /// Creates a new king side castle move.
+    #[inline]
     pub fn new_castle_kingside(origin: Square, target: Square) -> Self {
         Self::from_flag_bits(origin, target, Self::KING_SIDE_CASTLE)
     }
 
     /// Creates a new queen side castle move.
+    #[inline]
     pub fn new_castle_queenside(origin: Square, target: Square) -> Self {
         Self::from_flag_bits(origin, target, Self::QUEEN_SIDE_CASTLE)
     }
 
+    #[inline]
     fn from_flag_bits(origin: Square, target: Square, flags: u16) -> Self {
         Self(
             Self::square_to_promotion_code(origin)
@@ -126,16 +135,19 @@ impl BitMove {
         )
     }
 
+    #[inline]
     fn square_to_promotion_code(sq: Square) -> u16 {
         sq.file().to_u16() | (sq.rank().to_u16() << 3)
     }
 
+    #[inline]
     fn square_from_code(code: u16) -> Square {
         let file = File::new((code & 7) as u8);
         let rank = Rank::new(((code >> 3) & 7) as u8);
         Square::new(file, rank)
     }
 
+    #[inline]
     fn piece_to_code(piece: PieceType) -> u16 {
         match piece {
             PieceType::KNIGHT => 0,
@@ -149,6 +161,7 @@ impl BitMove {
         }
     }
 
+    #[inline]
     fn piece_from_code(code: u16) -> PieceType {
         debug_assert!(code < 4);
 
@@ -162,55 +175,66 @@ impl BitMove {
     }
 
     /// Returns the origin square.
+    #[inline]
     pub fn origin(self) -> Square {
         Self::square_from_code(self.0 & 0b111111)
     }
 
     /// Returns the target square.
+    #[inline]
     pub fn target(self) -> Square {
         Self::square_from_code((self.0 >> 6) & 0b111111)
     }
 
+    #[inline]
     fn flags(self) -> u16 {
         self.0 >> 12
     }
 
     /// Returns if the move is a capture.
+    #[inline]
     pub fn is_capture(self) -> bool {
         self.flags() & Self::CAPTURE != 0
     }
 
     /// Returns if the move is quiet (i.e no capture, promotion, castle, or double pawn push).
+    #[inline]
     pub fn is_quiet(self) -> bool {
         self.flags() == 0
     }
 
     /// Returns if the move is a promotion.
+    #[inline]
     pub fn is_promotion(self) -> bool {
         self.flags() & Self::PROMOTION != 0
     }
 
     /// Returns if the move is a castle.
+    #[inline]
     pub fn is_castle(self) -> bool {
         self.flags() >> 1 == 1
     }
 
     /// Returns if the move is a king side castle.
+    #[inline]
     pub fn is_king_side_castle(self) -> bool {
         self.flags() == Self::KING_SIDE_CASTLE
     }
 
     /// Returns if the move is a queen side castle.
+    #[inline]
     pub fn is_queen_side_castle(self) -> bool {
         self.flags() == Self::QUEEN_SIDE_CASTLE
     }
 
     /// Returns if the move is an en passant capture.
+    #[inline]
     pub fn is_en_passant(self) -> bool {
         self.flags() == Self::EN_PASSANT
     }
 
     /// Return if the move is a double pawn push.
+    #[inline]
     pub fn is_double_push(self) -> bool {
         self.flags() == Self::DOUBLE_PAWN_PUSH
     }
@@ -221,6 +245,7 @@ impl BitMove {
     ///
     /// This method should only be called if the move is a promotion, otherwise garbage will be
     /// returned.
+    #[inline]
     pub fn promotion_piece(self) -> PieceType {
         Self::piece_from_code(self.flags() & 0b0011)
     }
