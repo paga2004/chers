@@ -38,6 +38,11 @@ impl Position {
         Self::from_fen(utils::fen::STARTING_POSITION).unwrap()
     }
 
+    /// Returns who's turn it is
+    pub fn side_to_move(&self) -> Color {
+        self.side_to_move
+    }
+
     /// Makes a move on the current position.
     ///
     /// If the move is illegal `false` will be returned and the position is left unchanged.
@@ -65,12 +70,11 @@ impl Position {
         debug_assert!(p != Piece::OFF_BOARD);
         self.side_to_move = !self.side_to_move;
         self.ply += 1;
-        let halfmove_clock =
-            if m.is_capture() || p.is_type(PieceType::PAWN_W) || p.is_type(PieceType::PAWN_B) {
-                0
-            } else {
-                state.halfmove_clock + 1
-            };
+        let halfmove_clock = if m.is_capture() || p.is_type(PieceType::PAWN) {
+            0
+        } else {
+            state.halfmove_clock + 1
+        };
         let mut castling_rights = state.castling_rights;
         let ep_square = if m.is_double_push() {
             Square::new(m.target().file(), p.color().map(Rank::THIRD, Rank::SIXTH))
@@ -116,8 +120,8 @@ impl Position {
             prev_state: Some(state.clone()),
         });
 
-        if m.origin() == self.king_square[(!self.side_to_move).to_usize()] {
-            self.king_square[(!self.side_to_move).to_usize()] = m.target();
+        if m.origin() == self.king_square[!self.side_to_move] {
+            self.king_square[!self.side_to_move] = m.target();
         }
         // white castling
         match p.color() {
@@ -190,7 +194,7 @@ impl Position {
             p
         };
         let captured_piece = self.state.captured_piece;
-        if m.target() == self.king_square[self.side_to_move.to_usize()] {
+        if m.target() == self.king_square[self.side_to_move] {
             self.king_square[self.side_to_move.to_usize()] = m.origin();
         }
 
@@ -234,6 +238,23 @@ impl Position {
         self.pieces[m.target()] = Piece::EMPTY;
         self.pieces[m.origin()] = piece;
         self.pieces[capture_field] = captured_piece;
+    }
+
+    /// Returns wheter the position is a stalemate
+    #[inline]
+    pub fn is_stalemate(&mut self) -> bool {
+        !self.is_check() && self.generate_legal_moves().is_empty()
+    }
+
+    /// Returns wheter the position is a checkmate
+    #[inline]
+    pub fn is_checkmate(&mut self) -> bool {
+        self.is_check() && self.generate_legal_moves().is_empty()
+    }
+
+    /// Returns wheter the position is a draw (fifty move rule or stalemate)
+    pub fn is_draw(&mut self) -> bool {
+        self.state.halfmove_clock >= 100 || self.is_stalemate()
     }
 }
 

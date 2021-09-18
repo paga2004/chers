@@ -51,7 +51,7 @@ impl Position {
             for j in 0..8 {
                 sq = Square::new(File::new(i), Rank::new(j));
                 if pieces[sq].is_type(PieceType::KING) {
-                    king_square[pieces[sq].color().to_usize()] = sq;
+                    king_square[pieces[sq].color()] = sq;
                 }
             }
         }
@@ -381,7 +381,7 @@ mod tests {
             for j in 0..8 {
                 sq = Square::new(File::new(i), Rank::new(j));
                 if piece_array[sq].is_type(PieceType::KING) {
-                    king_square[piece_array[sq].color().to_usize()] = sq;
+                    king_square[piece_array[sq].color()] = sq;
                 }
             }
         }

@@ -15,6 +15,7 @@ mod attack;
 mod bit_move;
 mod castling_rights;
 mod color;
+mod evaluate;
 mod fen;
 mod file;
 mod generate_moves;
@@ -25,6 +26,7 @@ mod piece;
 mod position;
 mod position_state;
 mod rank;
+mod search;
 mod square;
 
 pub mod error;

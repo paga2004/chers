@@ -1,9 +1,7 @@
 use std::fmt;
-use std::ops::Index;
-use std::ops::IndexMut;
+use std::ops;
 
 use crate::error::ParseSquareError;
-use crate::Piece;
 use crate::{File, Rank};
 
 /// A square on the board.
@@ -83,6 +81,23 @@ impl Square {
     #[inline]
     pub fn new(file: File, rank: Rank) -> Self {
         Self(21 + file.to_u8() + 10 * rank.to_u8())
+    }
+
+    /// Flip the square horizontally. Black starting squares become white squares.
+    ///
+    /// # Examples
+    /// ```
+    /// use chers::Square;
+    ///
+    /// assert_eq!(Square::A1.flip(), Square::A8);
+    /// assert_eq!(Square::A2.flip(), Square::A7);
+    ///
+    /// assert_eq!(Square::H1.flip(), Square::H8);
+    /// assert_eq!(Square::H8.flip(), Square::H1);
+    /// ```
+    #[inline]
+    pub fn flip(self) -> Self {
+        Self::new(self.file(), Rank::new(7 - self.rank().to_u8()))
     }
 
     /// Creates a new `Square` from a `&str` in algebraic notation.
@@ -172,7 +187,7 @@ impl fmt::Debug for Square {
     }
 }
 
-impl<T> Index<Square> for [T; 120] {
+impl<T> ops::Index<Square> for [T; 120] {
     type Output = T;
 
     fn index(&self, index: Square) -> &Self::Output {
@@ -180,7 +195,7 @@ impl<T> Index<Square> for [T; 120] {
     }
 }
 
-impl IndexMut<Square> for [Piece; 120] {
+impl<T> ops::IndexMut<Square> for [T; 120] {
     fn index_mut(&mut self, index: Square) -> &mut Self::Output {
         &mut self[index.0 as usize]
     }

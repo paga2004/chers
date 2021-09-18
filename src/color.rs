@@ -90,6 +90,20 @@ impl ops::Not for Color {
     }
 }
 
+impl<T> ops::Index<Color> for [T; 2] {
+    type Output = T;
+
+    fn index(&self, index: Color) -> &Self::Output {
+        &self[index.to_usize()]
+    }
+}
+
+impl<T> ops::IndexMut<Color> for [T; 2] {
+    fn index_mut(&mut self, index: Color) -> &mut Self::Output {
+        &mut self[index.0 as usize]
+    }
+}
+
 impl fmt::Display for Color {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.map("white", "black"))

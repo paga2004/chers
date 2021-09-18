@@ -69,10 +69,9 @@ impl ParsedMove {
                 PieceType::from_char(c)
                     .ok_or(ParseMoveError::InvalidPromotionPiece(c))
                     .and_then(|p| match p {
-                        PieceType::NIL
-                        | PieceType::KING
-                        | PieceType::PAWN_W
-                        | PieceType::PAWN_B => Err(ParseMoveError::InvalidPromotionPiece(c)),
+                        PieceType::KING | PieceType::PAWN => {
+                            Err(ParseMoveError::InvalidPromotionPiece(c))
+                        }
                         other => Ok(other),
                     })
             })

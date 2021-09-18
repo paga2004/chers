@@ -120,7 +120,7 @@ impl Position {
     /// ```
     #[inline]
     pub fn in_check(&self, side: Color) -> bool {
-        self.is_attacked(self.king_square[side.to_usize()], !side)
+        self.is_attacked(self.king_square[side], !side)
     }
 }
 

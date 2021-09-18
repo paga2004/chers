@@ -94,7 +94,7 @@ impl Position {
     /// assert!(moves.iter().all(|m| *m != m2));
     /// ```
     pub fn generate_legal_moves(&mut self) -> MoveList {
-        self.generate_pseudo_legal_moves()
+        self.generate_pseudo_legal_moves(false)
             .into_iter()
             .filter(|candidate| {
                 self.make_bit_move(*candidate);
@@ -105,7 +105,7 @@ impl Position {
             .collect()
     }
 
-    fn generate_pseudo_legal_moves(&self) -> MoveList {
+    pub(crate) fn generate_pseudo_legal_moves(&self, only_captures: bool) -> MoveList {
         let mut moves = MoveList::new();
 
         for i in 0..8 {
@@ -114,34 +114,36 @@ impl Position {
                 let piece = self.pieces[square];
                 if piece.is_color(self.side_to_move) {
                     match piece.piece_type() {
-                        PieceType::PAWN_W => {
-                            self.generate_white_pawn_moves(&mut moves, square);
+                        PieceType::PAWN if piece.is_color(Color::WHITE) => {
+                            self.generate_white_pawn_moves(&mut moves, square, only_captures);
                         }
-                        PieceType::PAWN_B => {
-                            self.generate_black_pawn_moves(&mut moves, square);
+                        PieceType::PAWN if piece.is_color(Color::BLACK) => {
+                            self.generate_black_pawn_moves(&mut moves, square, only_captures);
                         }
                         PieceType::KNIGHT => {
-                            self.generate_knight_moves(&mut moves, square);
+                            self.generate_knight_moves(&mut moves, square, only_captures);
                         }
                         PieceType::BISHOP => {
-                            self.generate_bishop_moves(&mut moves, square);
+                            self.generate_bishop_moves(&mut moves, square, only_captures);
                         }
                         PieceType::ROOK => {
-                            self.generate_rook_moves(&mut moves, square);
+                            self.generate_rook_moves(&mut moves, square, only_captures);
                         }
                         PieceType::QUEEN => {
-                            self.generate_bishop_moves(&mut moves, square);
-                            self.generate_rook_moves(&mut moves, square);
+                            self.generate_bishop_moves(&mut moves, square, only_captures);
+                            self.generate_rook_moves(&mut moves, square, only_captures);
                         }
                         PieceType::KING => {
-                            self.generate_king_moves(&mut moves, square);
+                            self.generate_king_moves(&mut moves, square, only_captures);
                         }
                         _ => {}
                     }
                 }
             }
         }
-        self.generate_castling_moves(&mut moves);
+        if !only_captures {
+            self.generate_castling_moves(&mut moves);
+        }
         if self.side_to_move == Color::WHITE {
             self.generate_en_passant_moves_white(&mut moves);
         } else {
@@ -151,7 +153,7 @@ impl Position {
         moves
     }
 
-    fn generate_white_pawn_moves(&self, moves: &mut MoveList, origin: Square) {
+    fn generate_white_pawn_moves(&self, moves: &mut MoveList, origin: Square, only_captures: bool) {
         let index = origin.to_usize();
         let offset = WHITE_PAWN_OFFSET;
         let capture_offsets = WHITE_PAWN_CAPTURE_OFFSETS;
@@ -161,7 +163,7 @@ impl Position {
         // captures
         for offset in &capture_offsets {
             let target = ((index as i8) + offset) as usize;
-            if self.pieces[target].is_color(!self.side_to_move) {
+            if self.pieces[target].is_piece() && self.pieces[target].is_color(!self.side_to_move) {
                 if promotion_rank {
                     self.add_promotion_capture(moves, origin, Square::from_index(target));
                 } else {
@@ -170,26 +172,28 @@ impl Position {
             }
         }
 
-        // push
-        let target = Square::from_index(((index as i8) + offset) as usize);
-        if self.pieces[target] == Piece::EMPTY {
-            if promotion_rank {
-                self.add_promotion(moves, origin, target);
-            } else {
-                self.add_quiet(moves, origin, target);
-            }
+        if !only_captures {
+            // push
+            let target = Square::from_index(((index as i8) + offset) as usize);
+            if self.pieces[target] == Piece::EMPTY {
+                if promotion_rank {
+                    self.add_promotion(moves, origin, target);
+                } else {
+                    self.add_quiet(moves, origin, target);
+                }
 
-            // double push
-            if starting_rank {
-                let target = Square::from_index(((index as i8) + 2 * offset) as usize);
-                if self.pieces[target] == Piece::EMPTY {
-                    self.add_double_pawn_push(moves, origin, target);
+                // double push
+                if starting_rank {
+                    let target = Square::from_index(((index as i8) + 2 * offset) as usize);
+                    if self.pieces[target] == Piece::EMPTY {
+                        self.add_double_pawn_push(moves, origin, target);
+                    }
                 }
             }
         }
     }
 
-    fn generate_black_pawn_moves(&self, moves: &mut MoveList, origin: Square) {
+    fn generate_black_pawn_moves(&self, moves: &mut MoveList, origin: Square, only_captures: bool) {
         let index = origin.to_usize();
         let offset = BLACK_PAWN_OFFSET;
         let capture_offsets = BLACK_PAWN_CAPTURE_OFFSETS;
@@ -208,30 +212,36 @@ impl Position {
             }
         }
 
-        // push
-        let target = Square::from_index(((index as i8) + offset) as usize);
-        if self.pieces[target] == Piece::EMPTY {
-            if promotion_rank {
-                self.add_promotion(moves, origin, target);
-            } else {
-                self.add_quiet(moves, origin, target);
-            }
+        if !only_captures {
+            // push
+            let target = Square::from_index(((index as i8) + offset) as usize);
+            if self.pieces[target] == Piece::EMPTY {
+                if promotion_rank {
+                    self.add_promotion(moves, origin, target);
+                } else {
+                    self.add_quiet(moves, origin, target);
+                }
 
-            // double push
-            if starting_rank {
-                let target = Square::from_index(((index as i8) + 2 * offset) as usize);
-                if self.pieces[target] == Piece::EMPTY {
-                    self.add_double_pawn_push(moves, origin, target);
+                // double push
+                if starting_rank {
+                    let target = Square::from_index(((index as i8) + 2 * offset) as usize);
+                    if self.pieces[target] == Piece::EMPTY {
+                        self.add_double_pawn_push(moves, origin, target);
+                    }
                 }
             }
         }
     }
 
-    fn generate_knight_moves(&self, moves: &mut MoveList, origin: Square) {
+    fn generate_knight_moves(&self, moves: &mut MoveList, origin: Square, only_captures: bool) {
         for offset in &KNIGHT_OFFSETS {
             let target = (origin.to_i8() + offset) as usize;
             match self.pieces[target] {
-                Piece::EMPTY => self.add_quiet(moves, origin, Square::from_index(target)),
+                Piece::EMPTY => {
+                    if !only_captures {
+                        self.add_quiet(moves, origin, Square::from_index(target));
+                    }
+                }
                 Piece::OFF_BOARD => continue,
                 p if p.is_color(self.side_to_move) => continue,
                 _ => self.add_capture(moves, origin, Square::from_index(target)),
@@ -239,7 +249,7 @@ impl Position {
         }
     }
 
-    fn generate_bishop_moves(&self, moves: &mut MoveList, origin: Square) {
+    fn generate_bishop_moves(&self, moves: &mut MoveList, origin: Square, only_captures: bool) {
         for offset in &BISHOP_OFFSETS {
             let mut target = (origin.to_i8() + offset) as usize;
             let mut piece = self.pieces[target];
@@ -250,7 +260,9 @@ impl Position {
                     }
                     break;
                 }
-                self.add_quiet(moves, origin, Square::from_index(target));
+                if !only_captures {
+                    self.add_quiet(moves, origin, Square::from_index(target));
+                }
 
                 target = (target as i8 + offset) as usize;
                 piece = self.pieces[target];
@@ -258,7 +270,7 @@ impl Position {
         }
     }
 
-    fn generate_rook_moves(&self, moves: &mut MoveList, origin: Square) {
+    fn generate_rook_moves(&self, moves: &mut MoveList, origin: Square, only_captures: bool) {
         for offset in &ROOK_OFFSETS {
             let mut target = (origin.to_i8() + offset) as usize;
             let mut piece = self.pieces[target];
@@ -269,19 +281,24 @@ impl Position {
                     }
                     break;
                 }
-                self.add_quiet(moves, origin, Square::from_index(target));
-
+                if !only_captures {
+                    self.add_quiet(moves, origin, Square::from_index(target));
+                }
                 target = (target as i8 + offset) as usize;
                 piece = self.pieces[target];
             }
         }
     }
 
-    fn generate_king_moves(&self, moves: &mut MoveList, origin: Square) {
+    fn generate_king_moves(&self, moves: &mut MoveList, origin: Square, only_captures: bool) {
         for offset in &KING_OFFSETS {
             let target = (origin.to_i8() + offset) as usize;
             match self.pieces[target] {
-                Piece::EMPTY => self.add_quiet(moves, origin, Square::from_index(target)),
+                Piece::EMPTY => {
+                    if !only_captures {
+                        self.add_quiet(moves, origin, Square::from_index(target));
+                    }
+                }
                 Piece::OFF_BOARD => continue,
                 p if p.is_color(self.side_to_move) => continue,
                 _ => self.add_capture(moves, origin, Square::from_index(target)),
@@ -405,6 +422,21 @@ mod tests {
         let mut pos = Position::from_fen(fen).expect("valid position");
         let mut moves: Vec<_> = pos
             .generate_legal_moves()
+            .into_iter()
+            .map(|m| m.to_string())
+            .collect();
+        expected_moves.sort_unstable();
+        moves.sort_unstable();
+
+        pretty_assertions::assert_eq!(moves, expected_moves);
+    }
+
+    #[test_case(utils::fen::STARTING_POSITION, &mut []; "starting position")]
+    #[test_case(utils::fen::KIWIPETE, &mut ["d5e6", "e2a6", "e5d7", "e5f7", "e5g6", "f3f6", "f3h3", "g2h3"]; "kiwipete")]
+    fn test_position_generate_captures(fen: &str, expected_moves: &mut [&str]) {
+        let pos = Position::from_fen(fen).expect("valid position");
+        let mut moves: Vec<_> = pos
+            .generate_pseudo_legal_moves(true)
             .into_iter()
             .map(|m| m.to_string())
             .collect();

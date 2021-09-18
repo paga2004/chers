@@ -39,7 +39,10 @@ pub enum MoveFlags {
 /// |  13  |     1     |    1    |     0     |     1     | bishop-promo capture |
 /// |  14  |     1     |    1    |     1     |     0     | rook-promo capture   |
 /// |  15  |     1     |    1    |     1     |     1     | queen-promo capture  |
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+///
+/// The advantage of this flags is that we can order the moves in a reasonable way simply by
+/// interpreting the move as a 16-bit number(promotion > captures > quiet).
+#[derive(Debug, PartialEq, Eq, Clone, Copy, PartialOrd, Ord)]
 pub struct BitMove(u16);
 
 impl BitMove {
