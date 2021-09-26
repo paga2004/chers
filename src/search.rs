@@ -54,7 +54,7 @@ impl Position {
                 self.undo_move();
                 continue;
             }
-            let evaluation = -self.quiescence_search(-beta, -alpha);
+            let evaluation = -self.evaluate();
             self.undo_move();
             if evaluation >= beta {
                 return beta;

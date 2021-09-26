@@ -1,5 +1,5 @@
+use arrayvec::ArrayVec;
 use std::fmt;
-use std::sync::Arc;
 
 use crate::utils;
 use crate::BitMove;
@@ -29,7 +29,7 @@ pub struct Position {
     pub(crate) side_to_move: Color,
     pub(crate) ply: u16,
 
-    pub(crate) state: Arc<PositionState>,
+    pub(crate) state: ArrayVec<PositionState, 256>,
 }
 
 impl Position {
@@ -41,6 +41,11 @@ impl Position {
     /// Returns who's turn it is
     pub fn side_to_move(&self) -> Color {
         self.side_to_move
+    }
+
+    /// Returns the `Piece` on a given `Square`
+    pub fn get_square(&self, sq: Square) -> Piece {
+        self.pieces[sq]
     }
 
     /// Makes a move on the current position.
@@ -64,7 +69,7 @@ impl Position {
     /// This should only be called if the move is legal. For a safer function see
     /// [`Position::make_move`], which takes a [`ParsedMove`] instead.
     pub fn make_bit_move(&mut self, m: BitMove) {
-        let state = &self.state;
+        let state = &self.state[self.state.len() - 1];
         let p = self.pieces[m.origin()];
         debug_assert!(p != Piece::EMPTY);
         debug_assert!(p != Piece::OFF_BOARD);
@@ -111,13 +116,12 @@ impl Position {
         castling_rights.update(m.origin());
         castling_rights.update(m.target());
 
-        self.state = Arc::new(PositionState {
+        self.state.push(PositionState {
             castling_rights,
             ep_square,
             halfmove_clock,
             prev_move: m,
             captured_piece,
-            prev_state: Some(state.clone()),
         });
 
         if m.origin() == self.king_square[!self.side_to_move] {
@@ -173,7 +177,8 @@ impl Position {
     pub fn undo_move(&mut self) {
         self.side_to_move = !self.side_to_move;
         self.ply -= 1;
-        let m = self.state.prev_move;
+        let state = &self.state[self.state.len() - 1];
+        let m = state.prev_move;
         debug_assert!(m != BitMove::NULL);
         let p = self.pieces[m.target()];
         debug_assert!(p != Piece::EMPTY);
@@ -193,12 +198,12 @@ impl Position {
         } else {
             p
         };
-        let captured_piece = self.state.captured_piece;
+        let captured_piece = state.captured_piece;
         if m.target() == self.king_square[self.side_to_move] {
             self.king_square[self.side_to_move.to_usize()] = m.origin();
         }
 
-        self.state = self.state.prev_state.as_ref().unwrap().clone();
+        self.state.pop();
 
         // castling
         match p.color() {
@@ -254,7 +259,7 @@ impl Position {
 
     /// Returns wheter the position is a draw (fifty move rule or stalemate)
     pub fn is_draw(&mut self) -> bool {
-        self.state.halfmove_clock >= 100 || self.is_stalemate()
+        self.state[self.state.len() - 1].halfmove_clock >= 100 || self.is_stalemate()
     }
 }
 
@@ -266,8 +271,8 @@ impl Default for Position {
 
 impl PartialEq for Position {
     fn eq(&self, other: &Self) -> bool {
-        let state = &self.state;
-        let other_state = &other.state;
+        let state = &self.state[self.state.len() - 1];
+        let other_state = &other.state[other.state.len() - 1];
 
         self.pieces == other.pieces
             && self.side_to_move == other.side_to_move
@@ -278,13 +283,13 @@ impl PartialEq for Position {
 
 impl fmt::Display for Position {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let state = &self.state;
+        let state = &self.state[self.state.len() - 1];
         // print flags
         writeln!(f)?;
         writeln!(f, "Active color: {}", self.side_to_move)?;
         writeln!(f, "Castling rights: {}", state.castling_rights)?;
         write!(f, "En passant: ")?;
-        writeln!(f, "{}", self.state.ep_square)?;
+        writeln!(f, "{}", state.ep_square)?;
         writeln!(f, "Halfmove clock: {}", state.halfmove_clock)?;
         writeln!(f, "Ply: {}", self.ply)?;
         writeln!(f)?;

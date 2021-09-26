@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use arrayvec::ArrayVec;
 
 use crate::position_state::PositionState;
 use crate::Color;
@@ -39,7 +39,8 @@ impl Position {
 
         let ply = fullmove_number * 2 - active_color.map(1, 0);
 
-        let state = Arc::new(PositionState::new(
+        let mut state = ArrayVec::new();
+        state.push(PositionState::new(
             castling_rights,
             en_passant_square,
             halfmove_clock,
@@ -67,6 +68,7 @@ impl Position {
 
     /// Returns the fen representation of the current position.
     pub fn to_fen(&self) -> String {
+        let state = &self.state[self.state.len() - 1];
         let mut res = String::new();
         let mut empty_squares = 0;
 
@@ -99,9 +101,9 @@ impl Position {
             "{} {} {} {} {} {}",
             res,
             self.side_to_move.to_char(),
-            self.state.castling_rights,
-            self.state.ep_square,
-            self.state.halfmove_clock,
+            state.castling_rights,
+            state.ep_square,
+            state.halfmove_clock,
             fullmove_number
         )
     }
@@ -386,7 +388,8 @@ mod tests {
             }
         }
 
-        let state = Arc::new(PositionState::new(
+        let mut state = ArrayVec::new();
+        state.push(PositionState::new(
             castling_rights,
             en_passant_square,
             halfmove_clock,

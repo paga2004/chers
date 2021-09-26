@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use crate::{BitMove, CastlingRights, Piece, Square};
 
 #[derive(Clone, Debug)]
@@ -11,7 +9,6 @@ pub(crate) struct PositionState {
 
     pub(crate) prev_move: BitMove,
     pub(crate) captured_piece: Piece,
-    pub(crate) prev_state: Option<Arc<PositionState>>,
 }
 
 impl PositionState {
@@ -26,7 +23,6 @@ impl PositionState {
             halfmove_clock,
             prev_move: BitMove::NULL,
             captured_piece: Piece::EMPTY,
-            prev_state: None,
         }
     }
 }

@@ -307,13 +307,14 @@ impl Position {
     }
 
     fn generate_castling_moves(&self, moves: &mut MoveList) {
+        let state = &self.state[self.state.len() - 1];
         // the order of the following operations is important for the best performance
         // 1. we check if the squares are empty since that is just a lookup and really fast.
         // 2. we check if we are in check and return early.
         // 3. we check if the squares are attacked
         match self.side_to_move {
             Color::WHITE => {
-                if self.state.castling_rights.white_king_side()
+                if state.castling_rights.white_king_side()
                     && self.pieces[Square::F1] == Piece::EMPTY
                     && self.pieces[Square::G1] == Piece::EMPTY
                 {
@@ -326,7 +327,7 @@ impl Position {
                         self.add_castle_kingside(moves, Square::E1, Square::G1);
                     }
                 }
-                if self.state.castling_rights.white_queen_side()
+                if state.castling_rights.white_queen_side()
                     && self.pieces[Square::B1] == Piece::EMPTY
                     && self.pieces[Square::C1] == Piece::EMPTY
                     && self.pieces[Square::D1] == Piece::EMPTY
@@ -342,7 +343,7 @@ impl Position {
                 }
             }
             Color::BLACK => {
-                if self.state.castling_rights.black_king_side()
+                if state.castling_rights.black_king_side()
                     && self.pieces[Square::F8] == Piece::EMPTY
                     && self.pieces[Square::G8] == Piece::EMPTY
                 {
@@ -355,7 +356,7 @@ impl Position {
                         self.add_castle_kingside(moves, Square::E8, Square::G8);
                     }
                 }
-                if self.state.castling_rights.black_queen_side()
+                if state.castling_rights.black_queen_side()
                     && self.pieces[Square::B8] == Piece::EMPTY
                     && self.pieces[Square::C8] == Piece::EMPTY
                     && self.pieces[Square::D8] == Piece::EMPTY
@@ -374,24 +375,26 @@ impl Position {
     }
 
     fn generate_en_passant_moves_white(&self, moves: &mut MoveList) {
-        if self.state.ep_square != Square::NO_SQ {
+        let state = &self.state[self.state.len() - 1];
+        if state.ep_square != Square::NO_SQ {
             // The offset is added to the target square. That's why it's the other way around.
             for offset in BLACK_PAWN_CAPTURE_OFFSETS {
-                let target = (self.state.ep_square.to_i8() + offset) as usize;
+                let target = (state.ep_square.to_i8() + offset) as usize;
                 if self.pieces[target] == Piece::W_PAWN {
-                    self.add_en_passant(moves, Square::from_index(target), self.state.ep_square);
+                    self.add_en_passant(moves, Square::from_index(target), state.ep_square);
                 }
             }
         }
     }
 
     fn generate_en_passant_moves_black(&self, moves: &mut MoveList) {
-        if self.state.ep_square != Square::NO_SQ {
+        let state = &self.state[self.state.len() - 1];
+        if state.ep_square != Square::NO_SQ {
             // The offset is added to the target square. That's why it's the other way around.
             for offset in WHITE_PAWN_CAPTURE_OFFSETS {
-                let target = (self.state.ep_square.to_i8() + offset) as usize;
+                let target = (state.ep_square.to_i8() + offset) as usize;
                 if self.pieces[target] == Piece::B_PAWN {
-                    self.add_en_passant(moves, Square::from_index(target), self.state.ep_square);
+                    self.add_en_passant(moves, Square::from_index(target), state.ep_square);
                 }
             }
         }

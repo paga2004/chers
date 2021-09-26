@@ -11,13 +11,13 @@ fn perft_kiwipete_3() -> u64 {
     perft(&mut pos, black_box(3))
 }
 
-fn search_kiwipete_3() -> BitMove {
+fn search_kiwipete_2() -> BitMove {
     let mut pos = Position::from_fen(utils::fen::KIWIPETE).unwrap();
-    pos.search(black_box(3))
+    pos.search(black_box(2))
 }
 
 iai::main!(
     perft_starting_position_3,
     perft_kiwipete_3,
-    search_kiwipete_3
+    search_kiwipete_2
 );

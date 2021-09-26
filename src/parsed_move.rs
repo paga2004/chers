@@ -36,6 +36,16 @@ impl ParsedMove {
         }
     }
 
+    /// Returns the target square of the move
+    pub fn target(&self) -> Square {
+        self.target
+    }
+
+    /// Returns the origin square of the move
+    pub fn origin(&self) -> Square {
+        self.origin
+    }
+
     /// Creates a new `Move` from pure algebraic coordinate notation.
     ///
     /// The UCI communication protocol uses exactly this notation.

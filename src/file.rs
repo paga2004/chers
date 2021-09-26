@@ -58,6 +58,12 @@ impl File {
     pub(crate) fn to_u16(self) -> u16 {
         self.0 as u16
     }
+
+    /// Retruns the number in the range 0..8 corresponding to the file
+    #[inline]
+    pub fn to_i32(self) -> i32 {
+        self.0 as i32
+    }
 }
 
 impl fmt::Display for File {
