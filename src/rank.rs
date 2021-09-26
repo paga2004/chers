@@ -3,7 +3,7 @@ use std::ops::Add;
 use std::ops::Sub;
 
 /// A rank (otherwise known as row) on the board.
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, PartialEq)]
 pub struct Rank(u8);
 
 #[allow(missing_docs)]
@@ -44,6 +44,11 @@ impl Rank {
         }
     }
 
+    /// Returns the letter representing the `Rank`
+    pub fn to_char(self) -> char {
+        (self.0 + b'1') as char
+    }
+
     #[inline]
     pub(crate) fn to_u8(self) -> u8 {
         self.0
@@ -60,6 +65,13 @@ impl fmt::Display for Rank {
         write!(f, "{}", self.0 + 1)
     }
 }
+
+impl fmt::Debug for Rank {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Display::fmt(self, f)
+    }
+}
+
 impl Add<u8> for Rank {
     type Output = Self;
 

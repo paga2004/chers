@@ -146,15 +146,13 @@ mod tests {
     use crate::Position;
 
     #[test]
-    #[ignore = "too long for a normal test run"]
+    #[ignore = "too long for a normal test run (~10min)"]
     fn random_fens_test() {
         let iter = random_fens();
-        let mut count = 0;
         iter.for_each(|s| {
             let fen = s.unwrap();
-            let pos = Position::from_fen(&fen);
-            assert!(pos.is_ok(), "{}", fen);
-            count += 1;
+            let pos = Position::from_fen(&fen).unwrap();
+            assert_eq!(pos.to_fen(), fen.trim(), "{}", fen);
         });
     }
 }

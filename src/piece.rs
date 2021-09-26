@@ -212,6 +212,27 @@ impl Piece {
         Some(Piece::new(piece_type, color))
     }
 
+    /// Returns the english lowercase letter corresponding to the `Piece`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use chers::Piece;
+    ///
+    /// assert_eq!(Piece::W_PAWN.to_char(), 'P');
+    /// assert_eq!(Piece::B_PAWN.to_char(), 'p');
+    /// assert_eq!(Piece::W_KNIGHT.to_char(), 'N');
+    /// assert_eq!(Piece::B_KNIGHT.to_char(), 'n');
+    /// assert_eq!(Piece::W_KING.to_char(), 'K');
+    /// assert_eq!(Piece::B_KING.to_char(), 'k');
+    /// ```
+    pub fn to_char(self) -> char {
+        match self.color() {
+            Color::WHITE => self.piece_type().to_char().to_ascii_uppercase(),
+            Color::BLACK => self.piece_type().to_char(),
+        }
+    }
+
     /// Returns true if the color of `self` matches `color`.
     #[inline]
     pub fn is_color(self, color: Color) -> bool {

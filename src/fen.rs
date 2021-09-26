@@ -67,11 +67,46 @@ impl Position {
 
     /// Returns the fen representation of the current position.
     pub fn to_fen(&self) -> String {
-        todo!();
+        let mut res = String::new();
+        let mut empty_squares = 0;
+
+        for i in 0..8 {
+            if i > 0 {
+                res.push('/');
+            }
+            for j in 0..8 {
+                let sq = Square::new(File::new(j), Rank::new(7 - i));
+                if self.pieces[sq] == Piece::EMPTY {
+                    empty_squares += 1u8;
+                } else {
+                    if empty_squares != 0 {
+                        debug_assert!(empty_squares <= 8);
+                        res.push((b'0' + empty_squares) as char);
+                        empty_squares = 0;
+                    }
+                    res.push(self.pieces[sq].to_char());
+                }
+            }
+            if empty_squares != 0 {
+                debug_assert!(empty_squares <= 8);
+                res.push((b'0' + empty_squares) as char);
+                empty_squares = 0;
+            }
+        }
+
+        let fullmove_number = (self.ply + 1) / 2;
+        format!(
+            "{} {} {} {} {} {}",
+            res,
+            self.side_to_move.to_char(),
+            self.state.castling_rights,
+            self.state.ep_square,
+            self.state.halfmove_clock,
+            fullmove_number
+        )
     }
 }
 
-// TODO: Rewrite this function
 fn parse_pieces(s: &str) -> Result<[Piece; 120], ParseFenError<'_>> {
     let mut chars = s.chars();
     let mut pieces = [Piece::OFF_BOARD; 120];
@@ -145,11 +180,11 @@ fn parse_castling_rights(s: &str) -> Result<CastlingRights, ParseFenError<'_>> {
     ))
 }
 
-fn parse_en_passant_square(s: &str) -> Result<Option<Square>, ParseFenError<'_>> {
+fn parse_en_passant_square(s: &str) -> Result<Square, ParseFenError<'_>> {
     if s == "-" {
-        return Ok(None);
+        return Ok(Square::NO_SQ);
     }
-    Ok(Some(Square::from_algebraic_notation(s)?))
+    Ok(Square::from_algebraic_notation(s)?)
 }
 
 fn parse_halfmove_clock(s: &str) -> Result<u16, ParseFenError<'_>> {
@@ -167,6 +202,7 @@ mod tests {
     use test_case::test_case;
 
     use super::*;
+    use crate::utils;
     use ParseFenError::*;
 
     #[test_case("", TooShort; "too short")]
@@ -198,7 +234,7 @@ mod tests {
             "----------",
         ],
         Color::WHITE,
-        None,
+        Square::NO_SQ,
         CastlingRights::default(),
         0,
         1
@@ -221,7 +257,7 @@ mod tests {
             "----------",
         ],
         Color::BLACK,
-        Some(Square::E3),
+        Square::E3,
         CastlingRights::default(),
         0,
         2
@@ -244,7 +280,7 @@ mod tests {
             "----------",
         ],
         Color::WHITE,
-        Some(Square::C6),
+        Square::C6,
         CastlingRights::default(),
         0,
         3
@@ -267,7 +303,7 @@ mod tests {
            "----------",
         ],
         Color::BLACK,
-        None,
+        Square::NO_SQ,
         CastlingRights::default(),
         1,
         4
@@ -290,7 +326,7 @@ mod tests {
            "----------",
         ],
         Color::WHITE,
-        None,
+        Square::NO_SQ,
         CastlingRights::new(true, false, false, true),
         0,
         1
@@ -313,7 +349,7 @@ mod tests {
            "----------",
         ],
         Color::WHITE,
-        None,
+        Square::NO_SQ,
         CastlingRights::new(false, false, false, false),
         0,
         1
@@ -323,7 +359,7 @@ mod tests {
         fen: &str,
         pieces: [&str; 12],
         side_to_move: Color,
-        en_passant_square: Option<Square>,
+        en_passant_square: Square,
         castling_rights: CastlingRights,
         halfmove_clock: u16,
         ply: u16,
@@ -364,5 +400,12 @@ mod tests {
         };
 
         pretty_assertions::assert_eq!(Position::from_fen(fen).expect("valid position"), expected);
+    }
+
+    #[test_case(utils::fen::STARTING_POSITION; "starting position")]
+    #[test_case(utils::fen::KIWIPETE; "kiwipete")]
+    fn test_to_fen(fen: &str) {
+        let pos = Position::from_fen(fen).unwrap();
+        pretty_assertions::assert_eq!(pos.to_fen(), fen);
     }
 }

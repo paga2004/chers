@@ -73,12 +73,9 @@ impl Position {
             };
         let mut castling_rights = state.castling_rights;
         let ep_square = if m.is_double_push() {
-            Some(Square::new(
-                m.target().file(),
-                p.color().map(Rank::THIRD, Rank::SIXTH),
-            ))
+            Square::new(m.target().file(), p.color().map(Rank::THIRD, Rank::SIXTH))
         } else {
-            None
+            Square::NO_SQ
         };
 
         // en passent
@@ -266,11 +263,7 @@ impl fmt::Display for Position {
         writeln!(f, "Active color: {}", self.side_to_move)?;
         writeln!(f, "Castling rights: {}", state.castling_rights)?;
         write!(f, "En passant: ")?;
-        if let Some(s) = state.ep_square {
-            writeln!(f, "{}", s)?;
-        } else {
-            writeln!(f, "-")?;
-        }
+        writeln!(f, "{}", self.state.ep_square)?;
         writeln!(f, "Halfmove clock: {}", state.halfmove_clock)?;
         writeln!(f, "Ply: {}", self.ply)?;
         writeln!(f)?;

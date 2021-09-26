@@ -3,7 +3,7 @@ use std::ops::Add;
 use std::ops::Sub;
 
 /// A file (otherwise known as column) on the board.
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, PartialEq)]
 pub struct File(u8);
 
 #[allow(missing_docs)]
@@ -44,6 +44,11 @@ impl File {
         }
     }
 
+    /// Returns the letter representing the `File`
+    pub fn to_char(self) -> char {
+        (self.0 + b'a') as char
+    }
+
     #[inline]
     pub(crate) fn to_u8(self) -> u8 {
         self.0
@@ -58,6 +63,12 @@ impl File {
 impl fmt::Display for File {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", (b'a' + self.0) as char)
+    }
+}
+
+impl fmt::Debug for File {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Display::fmt(self, f)
     }
 }
 

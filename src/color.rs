@@ -8,8 +8,9 @@ pub struct Color(bool); // using bool instead of u8 allows easier match statemen
 impl Color {
     /// White
     pub const WHITE: Self = Self(false);
-    /// White
+    /// Black
     pub const BLACK: Self = Self(true);
+
     /// Creates a `Color` from its english letter or returns `None`.
     ///
     /// # Examples
@@ -30,6 +31,20 @@ impl Color {
             'b' | 'B' => Some(Self::BLACK),
             _ => None,
         }
+    }
+
+    /// Returns the english lowercase letter corresponding to the `Color`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use chers::Color;
+    ///
+    /// assert_eq!(Color::WHITE.to_char(), 'w');
+    /// assert_eq!(Color::BLACK.to_char(), 'b');
+    /// ```
+    pub fn to_char(self) -> char {
+        self.map('w', 'b')
     }
 
     /// Returns `white` if `self == Color::WHITE` and `black` if `self == Color::BLACK`

@@ -7,11 +7,13 @@ use crate::Piece;
 use crate::{File, Rank};
 
 /// A square on the board.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub struct Square(u8);
 
 #[allow(missing_docs)]
 impl Square {
+    pub(crate) const NO_SQ: Self = Self(0);
+
     pub const A1: Self = Self(21);
     pub const B1: Self = Self(22);
     pub const C1: Self = Self(23);
@@ -156,7 +158,17 @@ impl Square {
 
 impl fmt::Display for Square {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::result::Result<(), std::fmt::Error> {
-        write!(f, "{}{}", self.file(), self.rank())
+        if self == &Self::NO_SQ {
+            write!(f, "-")
+        } else {
+            write!(f, "{}{}", self.file().to_char(), self.rank().to_char())
+        }
+    }
+}
+
+impl fmt::Debug for Square {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Display::fmt(self, f)
     }
 }
 

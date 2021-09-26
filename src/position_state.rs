@@ -5,7 +5,7 @@ use crate::{BitMove, CastlingRights, Piece, Square};
 #[derive(Clone, Debug)]
 pub(crate) struct PositionState {
     pub(crate) castling_rights: CastlingRights,
-    pub(crate) ep_square: Option<Square>,
+    pub(crate) ep_square: Square,
 
     pub(crate) halfmove_clock: u16,
 
@@ -17,7 +17,7 @@ pub(crate) struct PositionState {
 impl PositionState {
     pub(crate) fn new(
         castling_rights: CastlingRights,
-        ep_square: Option<Square>,
+        ep_square: Square,
         halfmove_clock: u16,
     ) -> Self {
         Self {

@@ -357,24 +357,24 @@ impl Position {
     }
 
     fn generate_en_passant_moves_white(&self, moves: &mut MoveList) {
-        if let Some(sq) = self.state.ep_square {
+        if self.state.ep_square != Square::NO_SQ {
             // The offset is added to the target square. That's why it's the other way around.
             for offset in BLACK_PAWN_CAPTURE_OFFSETS {
-                let target = (sq.to_i8() + offset) as usize;
+                let target = (self.state.ep_square.to_i8() + offset) as usize;
                 if self.pieces[target] == Piece::W_PAWN {
-                    self.add_en_passant(moves, Square::from_index(target), sq);
+                    self.add_en_passant(moves, Square::from_index(target), self.state.ep_square);
                 }
             }
         }
     }
 
     fn generate_en_passant_moves_black(&self, moves: &mut MoveList) {
-        if let Some(sq) = self.state.ep_square {
+        if self.state.ep_square != Square::NO_SQ {
             // The offset is added to the target square. That's why it's the other way around.
             for offset in WHITE_PAWN_CAPTURE_OFFSETS {
-                let target = (sq.to_i8() + offset) as usize;
+                let target = (self.state.ep_square.to_i8() + offset) as usize;
                 if self.pieces[target] == Piece::B_PAWN {
-                    self.add_en_passant(moves, Square::from_index(target), sq);
+                    self.add_en_passant(moves, Square::from_index(target), self.state.ep_square);
                 }
             }
         }
