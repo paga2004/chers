@@ -1,3 +1,5 @@
+use arrayvec::ArrayVec;
+
 use crate::BitMove;
 
 /// A container for moves.
@@ -25,4 +27,4 @@ use crate::BitMove;
 ///     println!("{:?}", m);
 /// }
 /// ```
-pub type MoveList = Vec<BitMove>;
+pub type MoveList = ArrayVec<BitMove, 256>;
